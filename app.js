@@ -159,6 +159,16 @@ io.sockets.on('connection', function (socket) {
 		getThermostatClock();
 	});
 
+	//EVENT THERMOSTAT PLANNING
+	socket.on("updateAquaClock",function(id){
+		updateAquariumClock();
+	});
+
+	//EVENT UPDATE THERCLOCK
+	socket.on("getAquaClock",function(id){
+		getAquariumClock();
+	});
+
 
 	//EVENT ET LOG DE DECONNEXION DU SOCKET
 	socket.on('disconnect', function() {
@@ -402,7 +412,28 @@ function updateAllThermostat(thermostat,socket){
 
 
 function updateThermostatRtc(){
- //nrf24/node/2Nodw/ther/put/rtc/2018/02/15/15/34/22/
+ //nrf24/node/3Nodw/aqua/put/rtc/2018/02/15/15/34/22/
+  var date = new Date();
+
+
+	var d = date.getDate();
+	var m = date.getMonth()+1;
+	var y = date.getFullYear();
+	var h = date.getHours();
+	var i = date.getMinutes();
+	var s = date.getSeconds();
+
+	var commande = ["nrf24","node","3Nodw","aqua","put","rtc",y,m,d,h,i,s].join('/');
+	writeAndDrain(commande+'/',function(){});
+}
+
+function getThermostatClock(){
+	var commande = ["nrf24","node","3Nodw","aqua","get","rtc"].join('/');
+	writeAndDrain(commande+'/',function(){});
+}
+
+function updateAquariumClock(){
+ //nrf24/node/3Nodw/aqua/put/rtc/2018/02/15/15/34/22/
   var date = new Date();
 
 
@@ -417,15 +448,18 @@ function updateThermostatRtc(){
 	writeAndDrain(commande+'/',function(){});
 }
 
+function getAquariumClock(){
+	var commande = ["nrf24","node","2Nodw","ther","get","rtc"].join('/');
+	writeAndDrain(commande+'/',function(){});
+}
+
+
+
 function refreshThermostat(){
 	var commande = ["nrf24","node","2Nodw","ther","get","info"].join('/');
 	writeAndDrain(commande+'/',function(){});
 }
 
-function getThermostatClock(){
-	var commande = ["nrf24","node","2Nodw","ther","get","rtc"].join('/');
-	writeAndDrain(commande+'/',function(){});
-}
 
 
 //THERMOSTAT PERSISTANCE
