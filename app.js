@@ -412,7 +412,7 @@ function updateAllThermostat(thermostat,socket){
 
 
 function updateThermostatRtc(){
- //nrf24/node/3Nodw/aqua/put/rtc/2018/02/15/15/34/22/
+ //nrf24/node/2Nodw/ther/put/rtc/2018/02/15/15/34/22/
   var date = new Date();
 
 
@@ -423,12 +423,12 @@ function updateThermostatRtc(){
 	var i = date.getMinutes();
 	var s = date.getSeconds();
 
-	var commande = ["nrf24","node","3Nodw","aqua","put","rtc",y,m,d,h,i,s].join('/');
+	var commande = ["nrf24","node","2Nodw","ther","put","rtc",y,m,d,h,i,s].join('/');
 	writeAndDrain(commande+'/',function(){});
 }
 
 function getThermostatClock(){
-	var commande = ["nrf24","node","3Nodw","aqua","get","rtc"].join('/');
+	var commande = ["nrf24","node","2Nodw","ther","get","rtc"].join('/');
 	writeAndDrain(commande+'/',function(){});
 }
 
@@ -444,12 +444,12 @@ function updateAquariumClock(){
 	var i = date.getMinutes();
 	var s = date.getSeconds();
 
-	var commande = ["nrf24","node","2Nodw","ther","put","rtc",y,m,d,h,i,s].join('/');
+	var commande = ["nrf24","node","3Nodw","aqua","put","rtc",y,m,d,h,i,s].join('/');
 	writeAndDrain(commande+'/',function(){});
 }
 
 function getAquariumClock(){
-	var commande = ["nrf24","node","2Nodw","ther","get","rtc"].join('/');
+	var commande = ["nrf24","node","3Nodw","aqua","get","rtc"].join('/');
 	writeAndDrain(commande+'/',function(){});
 }
 
