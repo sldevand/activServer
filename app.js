@@ -1,5 +1,3 @@
-//REQUIRE DEPENDENCIES
-
 var http = require('http');
 var config = require('./config/config');
 var SerialPort = require('serialport');
@@ -11,8 +9,6 @@ var APIRequest = require('./httpRequest/apiRequest');
 //SERVER INIT
 var server = http.createServer();
 var apiReq = new APIRequest(http, 'localhost', '/activapi.fr/api/');
-
-//SOCKETIO
 var io = require('socket.io').listen(server);
 
 //CRONJOBS
@@ -32,11 +28,9 @@ var thermostats = [];
 //SOCKETIO LISTENERS
 io.sockets.on('connection', function (socket) {
 
-	//LOG DE CONNEXION DU CLIENT
 	var clientIp = socket.request.connection.remoteAddress;
 	logger.logToFile(config.rootPath + config.logPath, 'New connection from ' + clientIp, true);
 
-	//DEMANDE DES ACTIONNEURS
 	apiReq.get('actionneurs/', (res) => {
 		res.setEncoding('utf8');
 		var rawData = '';
@@ -44,20 +38,14 @@ io.sockets.on('connection', function (socket) {
 			rawData += chunk;
 			actionneurs = JSON.parse(rawData);
 		});
-	});
-
-	//DEMANDE DES CAPTEURS
-	apiReq.get('mesures/get-sensors', (res) => {
+	}).get('mesures/get-sensors', (res) => {
 		res.setEncoding('utf8');
 		var rawData = '';
 		res.on('data', (chunk) => {
 			rawData += chunk;
 			capteurs = JSON.parse(rawData);
 		});
-	});
-
-	//DEMANDE DU THERMOSTAT
-	apiReq.get('thermostat', (res) => {
+	}).get('thermostat', (res) => {
 		res.setEncoding('utf8');
 		var rawData = '';
 		res.on('data', (chunk) => {
@@ -66,137 +54,65 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
-	//EVENTS SOCKETS
-
-	//EVENT TOUTS MESSAGES
 	socket.on('messageAll', function (message) {
 		logger.logToFile(config.rootPath + config.logPath, 'messageAll From : ' + clientIp + ' ' + message, true);
 		socket.broadcast.emit("message", message);
-
-	})
-
-	socket.on('command', function (message) {
+	}).on('command', function (message) {
 		writeAndDrain(message, function () {});
-	})
-
-	//EVENT UPDATE DU DIMMER
-	socket.on('updateDimmer', function (dimmerObject) {
+	}).on('updateDimmer', function (dimmerObject) {
 		updateDimmer(dimmerObject, socket, false);
-	});
-
-	//EVENT UPDATE DU DIMMER ET PERSISTANCE
-	socket.on('updateDimmerPersist', function (dimmerObject) {
+	}).on('updateDimmerPersist', function (dimmerObject) {
 		updateDimmerPersist(dimmerObject, socket);
-	});
-
-	//EVENT UPDATE DE L'INTER
-	socket.on('updateInter', function (interObject) {
+	}).on('updateInter', function (interObject) {
 		updateInter(interObject, socket);
-	});
-
-	//EVENTS SCENARIOS
-	socket.on("updateScenario", function (scenario) {
+	}).on("updateScenario", function (scenario) {
 		updateScenario(scenario, socket);
-	});
-
-	//EVENT THERMOSTAT CONSIGNE
-	socket.on("updateTherCons", function (thermostat) {
+	}).on("updateTherCons", function (thermostat) {
 		updateThermostat(thermostat, socket, "cons");
-	});
-	//EVENT THERMOSTAT DELTA
-	socket.on("updateTherDelta", function (thermostat) {
+	}).on("updateTherDelta", function (thermostat) {
 		updateThermostat(thermostat, socket, "delta");
-	});
-
-	//EVENT THERMOSTAT TEMPEXT
-	socket.on("updateTherTempext", function (thermostat) {
+	}).on("updateTherTempext", function (thermostat) {
 		updateThermostat(thermostat, socket, "temp");
-	});
-	
-	//EVENT THERMOSTAT INTERNE
-	socket.on("updateTherInterne", function (thermostat) {
+	}).on("updateTherInterne", function (thermostat) {
 		updateThermostat(thermostat, socket, "int");
-	});
-
-	//EVENT THERMOSTAT MODE
-	socket.on("updateTherMode", function (id) {
+	}).on("updateTherMode", function (id) {
 		updateThermostatMode(id);
-	});
-
-	//EVENT SYNC THERMOSTAT MODES
-	socket.on("syncTherModes", function (id) {
+	}).on("syncTherModes", function (id) {
 		syncThermostatModes();
-	});
-	//EVENT THERMOSTAT PLANNING
-	socket.on("updateTherPlan", function (id) {
+	}).on("updateTherPlan", function (id) {
 		updateThermostatPlan(id);
-	});
-
-	//EVENT THERMOSTAT
-	socket.on("refreshTher", function () {
+	}).on("refreshTher", function () {
 		refreshThermostat();
-	});
-
-	//EVENT THERMOSTAT PLANNING
-	socket.on("updateTherClock", function (id) {
+	}).on("updateTherClock", function (id) {
 		updateThermostatRtc();
-	});
-
-	//EVENT UPDATE THERCLOCK
-	socket.on("getTherClock", function (id) {
+	}).on("getTherClock", function (id) {
 		getThermostatClock();
-	});
-
-	//EVENT THERMOSTAT PLANNING
-	socket.on("updateAquaClock", function (id) {
+	}).on("updateAquaClock", function (id) {
 		updateAquariumClock();
-	});
-
-	//EVENT UPDATE THERCLOCK
-	socket.on("getAquaClock", function (id) {
+	}).on("getAquaClock", function (id) {
 		getAquariumClock();
-	});
-
-
-	//EVENT ET LOG DE DECONNEXION DU SOCKET
-	socket.on('disconnect', function () {
+	}).on('disconnect', function () {
 		var clientIp = socket.request.connection.remoteAddress;
 		logger.logToFile(config.rootPath + config.logPath, clientIp + ' Disconnected', true);
 	});
 });
-
-//ECOUTE SUR PORT 5901
 server.listen(5901);
 
-//OUVERTURE SERIALPORT
 var port = new SerialPort(config.portPath, {
 	baudRate: 9600
 });
 
-//EVENT OUVERTURE DU SERIALPORT
 port.on('open', function () {
 	logger.logToFile(config.rootPath + config.logPath, "port " + config.portPath + " opened", true);
-});
-
-//EVENT ERREUR SUR LE SERIALPORT
-port.on('error', function (err) {
+}).on('error', function (err) {
 	logger.logToFile(config.rootPath + config.logPath, err.message, true);
-});
-
-//EVENT FERMETURE DU SERIALPORT
-port.on('close', function () {
+}).on('close', function () {
 	logger.logToFile(config.rootPath + config.logPath, "port " + config.portPath + " closed", true);
-});
+}).on('data', function (data) {
 
-//EVENT DONNEES ARRIVANT SUR SERIALPORT
-port.on('data', function (data) {
-
-	//Split des donnees
 	var datastr = data.toString();
 	datastr = datastr.replace(/[\n\r]+/g, '');
 	var dataTab = datastr.split(" ");
-
-	//Varibles d'horodatage
 	var dataObj = {
 		'radioid': dataTab[0],
 		'valeur1': dataTab[1],
@@ -205,18 +121,12 @@ port.on('data', function (data) {
 		'valeur4': dataTab[4],
 		'valeur5': dataTab[5]
 	};
-
-
-	//Persistance des sensors
 	if (dataObj.radioid.includes("sensor")) {
 		persistSensor(dataTab, dataObj);
 	}
-
-	//Persistance du thermostat
 	if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
 		persistThermostat(dataObj);
 	}
-
 	if (dataObj.radioid.includes("message")) {
 		if (dataObj.valeur1.includes("tht")) {
 			if (dataObj.valeur2.includes("spok")) {
@@ -224,14 +134,11 @@ port.on('data', function (data) {
 			}
 		}
 	}
-
 	if (dataObj.radioid.includes("therclock")) {
 
 		dataStr = dataObj.valeur1 + " " + dataObj.valeur2;
 		io.sockets.emit("therclock", dataStr);
 	}
-
-	//Log
 	if (datastr != "") {
 		var fullHour = df.stringifiedHour();
 		io.sockets.emit("messageConsole", fullHour + " " + datastr);
@@ -250,7 +157,6 @@ function updateActionneur(actionneur, socket) {
 
 //UPDATE DU DIMMER
 function updateDimmer(dimmerObject, socket, fromPersist) {
-
 	if (dimmerObject.etat >= 0 && dimmerObject.etat <= 255) {
 		var commande = [dimmerObject.module,
 			dimmerObject.radioid,
@@ -261,8 +167,6 @@ function updateDimmer(dimmerObject, socket, fromPersist) {
 
 			if (!fromPersist) socket.broadcast.emit('dimmer', dimmerObject);
 			else io.sockets.emit('dimmer', dimmerObject);
-
-
 		});
 	} else {
 		logger.logToFile(config.rootPath + config.logPath,
@@ -272,7 +176,6 @@ function updateDimmer(dimmerObject, socket, fromPersist) {
 }
 
 function updateDimmerPersist(dimmerObject, socket) {
-
 	if (typeof (dimmerObject) === 'string') {
 		dimmerObject = JSON.parse(dimmerObject);
 	}
@@ -281,14 +184,12 @@ function updateDimmerPersist(dimmerObject, socket) {
 		apiReq.post('actionneurs/update', dimmerObject);
 		logger.logToFile(config.rootPath + config.logPath, dimmerObject.nom + ' ' + dimmerObject.etat, true);
 		io.sockets.emit("messageConsole", df.stringifiedHour() + " " + dimmerObject.nom + ' ' + dimmerObject.etat);
-
 	} else {
 		logger.logToFile(config.rootPath + config.logPath,
 			'In updateDimmerPersist : value must be between 0 and 255',
 			true);
 	}
 }
-
 
 //UPDATE INTER
 function updateInter(interObject, socket) {
@@ -297,7 +198,6 @@ function updateInter(interObject, socket) {
 	}
 	var commande;
 	if (interObject.etat >= 0 && interObject.etat <= 1) {
-
 		switch (interObject.type) {
 			case "relay":
 				commande = [interObject.module,
@@ -321,7 +221,6 @@ function updateInter(interObject, socket) {
 				return;
 
 		}
-
 		logger.logToFile(config.rootPath + config.logPath, "update" + interObject.type + " " + interObject.nom, true);
 		writeAndDrain(commande + '/', function () {});
 		io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
@@ -338,18 +237,13 @@ function updateInter(interObject, socket) {
 var lastCall = new Date().getTime();
 
 function updateScenario(scenario, socket) {
-
 	var now = new Date().getTime();
-
 	var diff = now - lastCall;
-
 	if (diff > 2000) {
 		var time = 0;
-
 		if (typeof (scenario) === 'string') {
 			scenario = JSON.parse(scenario);
 		}
-
 		if (typeof scenario != "undefined") {
 			io.sockets.emit("messageConsole", df.stringifiedHour() + 'updateScenario ' + scenario.nom);
 			logger.logToFile(config.rootPath + config.logPath, 'updateScenario ' + scenario.nom, true);
@@ -357,67 +251,51 @@ function updateScenario(scenario, socket) {
 			for (var idx in scenario.data) {
 				items.push(scenario.data[idx]);
 			}
-
 			items.forEach(function (val) {
 				setTimeout(function () {
 					updateActionneur(val, socket);
 				}, time * 500);
 				time++;
 			});
-
 			lastCall = new Date().getTime();
-
 		} else {
 			logger.logToFile(config.rootPath + config.logPath, "malformed scenario = " + scenario, true);
 		}
 	} else {
 		logger.logToFile(config.rootPath + config.logPath, "Please wait before two scenarios calls", true);
-
 	}
 }
 
 //THERMOSTAT
 function updateThermostat(thermostat, socket, part) {
-
 	if (typeof (thermostat) === 'string') {
 		thermostat = JSON.parse(thermostat);
 	}
-
 	var val = null;
 	if (part.includes("cons")) {
 		val = thermostat.consigne;
 	}
-
 	if (val != null) {
 		var commande = ["nrf24", "node", "2Nodw", "ther", "set", part, val].join('/');
-
 		writeAndDrain(commande + '/', function () {});
-
 	} else {
 		logger.logToFile(config.rootPath + config.logPath, "given value is null", true);
 	}
 }
 
 function updateAllThermostat(thermostat, socket) {
-
 	updateThermostat(thermostat, socket, "cons");
 	updateThermostat(thermostat, socket, "delta");
-
 }
 
-
 function updateThermostatRtc() {
-	//nrf24/node/2Nodw/ther/put/rtc/2018/02/15/15/34/22/
 	var date = new Date();
-
-
 	var d = date.getDate();
 	var m = date.getMonth() + 1;
 	var y = date.getFullYear();
 	var h = date.getHours();
 	var i = date.getMinutes();
 	var s = date.getSeconds();
-
 	var commande = ["nrf24", "node", "2Nodw", "ther", "put", "rtc", y, m, d, h, i, s].join('/');
 	writeAndDrain(commande + '/', function () {});
 }
@@ -428,17 +306,13 @@ function getThermostatClock() {
 }
 
 function updateAquariumClock() {
-	//nrf24/node/3Nodw/aqua/put/rtc/2018/02/15/15/34/22/
 	var date = new Date();
-
-
 	var d = date.getDate();
 	var m = date.getMonth() + 1;
 	var y = date.getFullYear();
 	var h = date.getHours();
 	var i = date.getMinutes();
 	var s = date.getSeconds();
-
 	var commande = ["nrf24", "node", "3Nodw", "aqua", "put", "rtc", y, m, d, h, i, s].join('/');
 	writeAndDrain(commande + '/', function () {});
 }
@@ -448,18 +322,13 @@ function getAquariumClock() {
 	writeAndDrain(commande + '/', function () {});
 }
 
-
-
 function refreshThermostat() {
 	var commande = ["nrf24", "node", "2Nodw", "ther", "get", "info"].join('/');
 	writeAndDrain(commande + '/', function () {});
 }
 
-
-
 //THERMOSTAT PERSISTANCE
 function persistThermostat(dataObj) {
-
 	apiReq.get('thermostat', (res) => {
 		res.setEncoding('utf8');
 		var rawData = '';
@@ -467,24 +336,19 @@ function persistThermostat(dataObj) {
 			rawData += chunk;
 			thermostats = JSON.parse(rawData);
 			thermostats.forEach(function (thermostat, index) {
-
 				if (dataObj.radioid.includes("thermostat")) {
 					thermostat.consigne = dataObj.valeur1;
 					thermostat.delta = dataObj.valeur2;
 					thermostat.interne = dataObj.valeur4;
 					thermostat.etat = dataObj.valeur5;
 					io.sockets.emit('thermostat', thermostat);
-
 				}
 
 				if (dataObj.radioid.includes("thersel")) {
 					thermostat.modeid = dataObj.valeur1;
 					thermostat.planning = dataObj.valeur2;
 					io.sockets.emit('thersel', thermostat);
-
 				}
-
-
 				delete thermostat.sensor;
 				delete thermostat.mode;
 				apiReq.post('thermostat/update', thermostat);
@@ -494,38 +358,25 @@ function persistThermostat(dataObj) {
 }
 
 function updateThermostatMode(id) {
-
-
 	//THERMOPLANIFS
 	apiReq.get("thermostat/mode/" + parseInt(id, 10), (res) => {
 		res.setEncoding('utf8');
 		var rawData = '';
 		res.on('data', (chunk) => {
-
 			rawData += chunk;
 			var mode = JSON.parse(rawData);
-
 			if (id != null && id > 0 && id < 254) {
 				var commande = ["nrf24", "node", "2Nodw", "ther", "sel", "mode", mode.id].join('/');
 				writeAndDrain(commande + '/', function () {});
-
-
-
 				refreshThermostat();
 			} else {
 				logger.logToFile(config.rootPath + config.logPath, "given value is null or out of bounds", true);
 			}
-
 		});
 	});
-
-
-
 }
 
 function syncThermostatModes() {
-
-
 	var time = 0;
 	//THERMOPLANIFS
 	apiReq.get("thermostat/mode/", (res) => {
@@ -534,24 +385,15 @@ function syncThermostatModes() {
 		res.on('data', (chunk) => {
 			rawData += chunk;
 			var modes = objToArray(JSON.parse(rawData));
-
-
 			modes.forEach(function (mode) {
 				setTimeout(function () {
-
 					var commande = ["nrf24", "node", "2Nodw", "ther", "put", "mode", mode.id, mode.consigne, mode.delta].join('/');
 					writeAndDrain(commande + '/', function () {});
-
 				}, time * 200);
 				time++;
 			});
-
-
 		});
 	});
-
-
-
 }
 
 function objToArray(obj) {
@@ -559,36 +401,24 @@ function objToArray(obj) {
 	for (var idx in obj) {
 		objArray.push(obj[idx]);
 	}
-
 	return objArray;
-
 }
 
 function updateThermostatPlan(id) {
-
-	//THERMOPLANIFS
 	var time = 0;
-
 	if (id != null && id > 0 && id < 254) {
 		apiReq.get("thermostat/planif/" + parseInt(id, 10), (res) => {
 			res.setEncoding('utf8');
 			var rawData = '';
 			res.on('data', (chunk) => {
-
 				rawData += chunk;
-
 				var plans = objToArray(JSON.parse(rawData));
 				var com = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/');
-
 				writeAndDrain(com + '/', function () {});
-
 				var count = 1;
-
 				setTimeout(function () {
-
 					plans.forEach(function (plan) {
 						setTimeout(function () {
-
 							h1Start = plan.heure1Start;
 							h1Stop = plan.heure1Stop;
 							h2Start = plan.heure2Start;
@@ -597,59 +427,38 @@ function updateThermostatPlan(id) {
 							if (plan.heure1Stop === null || plan.heure1Stop == "") h1Stop = "XX:XX";
 							if (plan.heure2Start === null || plan.heure2Start == "") h2Start = "XX:XX";
 							if (plan.heure2Stop === null || plan.heure2Stop == "") h2Stop = "XX:XX";
-
-
-
 							var commande = ["nrf24", "node", "2Nodw", "ther", "put", "plan",
 								plan.jour, plan.modeid, plan.defaultModeid,
 								h1Start, h1Stop, h2Start, h2Stop
 							].join('/');
 							writeAndDrain(commande + '/', function () {});
-
-
-
 							if (parseInt(plan.jour) >= 7) {
-
 								setTimeout(function () {
-
 									commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
 									writeAndDrain(commande + '/', function () {});
 								}, 200);
 							}
-
 						}, time * 120);
 						time++;
 					});
-
 				}, 500);
 			});
 		});
-
 	} else {
-
 		if (id == 0) {
 			var commande = ["nrf24", "node", "2Nodw", "ther", "set", "plan", id].join('/');
-
 			writeAndDrain(commande + '/', function () {});
 		} else {
 			logger.logToFile(config.rootPath + config.logPath, "given value is null or out of bounds", true);
 		}
 	}
-
 }
-
-
-
-
 
 //SENSOR PERSISTANCE
 function persistSensor(dataTab, dataObj) {
-	//Requete d'ajout de la mesure
 	var uri = 'mesures/add-' + dataObj.radioid + '-' + dataObj.valeur1;
 	if (dataTab.length > 2) uri += '-' + dataObj.valeur2;
 	apiReq.get(uri);
-
-	//Envoi des donnees socketio des capteurs
 	capteurs.forEach(function (capteur, index) {
 		if (capteur.radioid === dataObj.radioid) {
 			capteur.valeur1 = dataObj.valeur1;
@@ -673,7 +482,6 @@ function persistSensor(dataTab, dataObj) {
 	});
 }
 
-//ECRITURE ET ATTENTE SUR PORT SERIE
 function writeAndDrain(data, callback) {
 	port.write(data, function () {});
 	port.drain(callback);
