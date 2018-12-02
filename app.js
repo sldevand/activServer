@@ -37,6 +37,11 @@ var logRefreshCronJob = new CronJob('0 */30 * * * *', function() {
 	apiReq.get('thermostat/log/refresh');
 }, null, true, 'Europe/Paris');
 
+var rtcUpdateCronJob = new CronJob('*/5 * * * * *', function() {
+	updateThermostatRtc();
+	updateAquariumClock();
+}, null, true, 'Europe/Paris');
+
 //GLOBAL VARS
 var actionneurs=[];
 var capteurs=[];
