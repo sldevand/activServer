@@ -115,6 +115,9 @@ port.on('open', function () {
 }).on('data', function (data) {
 
     var datastr = data.toString();
+    if (datastr === "") {
+        return;
+    }
     datastr = datastr.replace(/[\n\r]+/g, '');
     var dataTab = datastr.split(" ");
     var dataObj = {
@@ -139,15 +142,13 @@ port.on('open', function () {
         }
     }
     if (dataObj.radioid.includes("therclock")) {
+        var therclockStr = dataObj.valeur1 + " " + dataObj.valeur2;
+        io.sockets.emit("therclock", therclockStr);
+    }
 
-        dataStr = dataObj.valeur1 + " " + dataObj.valeur2;
-        io.sockets.emit("therclock", dataStr);
-    }
-    if (datastr != "") {
-        var fullHour = df.stringifiedHour();
-        io.sockets.emit("messageConsole", fullHour + " " + datastr);
-        logger.log(datastr);
-    }
+    var fullHour = df.stringifiedHour();
+    io.sockets.emit("messageConsole", fullHour + " " + datastr);
+    logger.log(datastr);
 });
 
 function updateActionneur(actionneur, socket) {
@@ -170,10 +171,11 @@ function updateDimmer(dimmerObject, socket, fromPersist) {
         dimmerObject.etat
     ].join('/') + '/';
     writeAndDrain(commande + '/', function () {
-        var clientIp = socket.request.connection.remoteAddress;
-
-        if (!fromPersist) socket.broadcast.emit('dimmer', dimmerObject);
-        else io.sockets.emit('dimmer', dimmerObject);
+        if (!fromPersist) {
+            socket.broadcast.emit('dimmer', dimmerObject);
+            return;
+        }
+        io.sockets.emit('dimmer', dimmerObject);
     });
 }
 
@@ -194,7 +196,6 @@ function updateDimmerPersist(dimmerObject, socket) {
 }
 
 function updateInter(interObject, socket) {
-
     if (interObject.etat < 0 || interObject.etat > 1) {
         logger.log('In updateInter : value must be 0 or 1');
     }
@@ -209,12 +210,12 @@ function updateInter(interObject, socket) {
         return;
     }
 
-    logger.log("update" + interObject.type + " " + interObject.nom);
     writeAndDrain(command + '/', function () {
+        logger.log("update" + interObject.type + " " + interObject.nom);
+        io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
+        io.sockets.emit('inter', interObject);
+        apiReq.post('actionneurs/update', interObject);
     });
-    io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
-    io.sockets.emit('inter', interObject);
-    apiReq.post('actionneurs/update', interObject);
 }
 
 function getInterCommand(interObject) {
@@ -248,7 +249,7 @@ function updateScenario(scenario, socket) {
         return;
     }
 
-    if (typeof scenario === "undefined") {
+    if (typeof (scenario) === "undefined") {
         logger.log("malformed scenario = " + scenario);
         return
     }
