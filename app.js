@@ -113,9 +113,8 @@ port.on('open', function () {
 }).on('close', function () {
     logger.log("port " + config.portPath + " closed");
 }).on('data', function (data) {
-
     var datastr = data.toString();
-    if (datastr === "") {
+    if (!datastr || /^\s*$/.test(datastr)) {
         return;
     }
     datastr = datastr.replace(/[\n\r]+/g, '');
