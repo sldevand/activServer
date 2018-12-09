@@ -1,5 +1,5 @@
 var fs = require('fs');
-var config = require('../config/config.ini');
+var config = require('../config/config');
 var df = require('../dateFactory/dateFactory');
 
 //JOURNAL D'EVENEMENTS
