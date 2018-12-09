@@ -462,6 +462,7 @@ function updateThermostatPlan(id) {
                         ].join('/');
                         writeAndDrain(commande + '/', function () {
                         });
+
                         if (parseInt(plan.jour) < 7) {
                             return;
                         }
@@ -469,8 +470,10 @@ function updateThermostatPlan(id) {
                         setTimeout(function () {
                             commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
                             writeAndDrain(commande + '/', function () {
+                                logger.logToFile(config.rootPath + config.logPath, "savePlan " + plan.jour, true);
                             });
                         }, 200);
+
                     }, time * 120);
                     time++;
                 });
