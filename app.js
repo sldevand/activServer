@@ -32,7 +32,7 @@ var thermostats = [];
 io.sockets.on('connection', function (socket) {
 
     var clientIp = socket.request.connection.remoteAddress;
-    logger.logToFile(config.rootPath + config.logPath, 'New connection from ' + clientIp, true);
+    logger.log( 'New connection from ' + clientIp);
 
     apiReq.get('actionneurs/', (res) => {
         res.setEncoding('utf8');
