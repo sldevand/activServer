@@ -32,7 +32,7 @@ var thermostats = [];
 io.sockets.on('connection', function (socket) {
 
     var clientIp = socket.request.connection.remoteAddress;
-    logger.log( 'New connection from ' + clientIp);
+    logger.log('New connection from ' + clientIp);
 
     apiReq.get('actionneurs/', (res) => {
         res.setEncoding('utf8');
@@ -58,7 +58,7 @@ io.sockets.on('connection', function (socket) {
     });
 
     socket.on('messageAll', function (message) {
-        logger.logToFile(config.rootPath + config.logPath, 'messageAll From : ' + clientIp + ' ' + message, true);
+        logger.log('messageAll From : ' + clientIp + ' ' + message);
         socket.broadcast.emit("message", message);
     }).on('command', function (message) {
         writeAndDrain(message, function () {
@@ -97,7 +97,7 @@ io.sockets.on('connection', function (socket) {
         getAquariumClock();
     }).on('disconnect', function () {
         var clientIp = socket.request.connection.remoteAddress;
-        logger.logToFile(config.rootPath + config.logPath, clientIp + ' Disconnected', true);
+        logger.log(clientIp + ' Disconnected');
     });
 });
 server.listen(5901);
@@ -107,11 +107,11 @@ var port = new SerialPort(config.portPath, {
 });
 
 port.on('open', function () {
-    logger.logToFile(config.rootPath + config.logPath, "port " + config.portPath + " opened", true);
+    logger.log("port " + config.portPath + " opened");
 }).on('error', function (err) {
-    logger.logToFile(config.rootPath + config.logPath, err.message, true);
+    logger.log(err.message);
 }).on('close', function () {
-    logger.logToFile(config.rootPath + config.logPath, "port " + config.portPath + " closed", true);
+    logger.log("port " + config.portPath + " closed");
 }).on('data', function (data) {
 
     var datastr = data.toString();
@@ -146,7 +146,7 @@ port.on('open', function () {
     if (datastr != "") {
         var fullHour = df.stringifiedHour();
         io.sockets.emit("messageConsole", fullHour + " " + datastr);
-        logger.logToFile(config.rootPath + config.logPath, datastr, true);
+        logger.log(datastr);
     }
 });
 
@@ -161,9 +161,7 @@ function updateActionneur(actionneur, socket) {
 
 function updateDimmer(dimmerObject, socket, fromPersist) {
     if (dimmerObject.etat < 0 || dimmerObject.etat > 255) {
-        logger.logToFile(config.rootPath + config.logPath,
-            'In updateDimmer : value must be between 0 and 255',
-            true);
+        logger.log('In updateDimmer : value must be between 0 and 255');
         return;
     }
 
@@ -185,24 +183,20 @@ function updateDimmerPersist(dimmerObject, socket) {
     }
 
     if (dimmerObject.etat < 0 || dimmerObject.etat > 255) {
-        logger.logToFile(config.rootPath + config.logPath,
-            'In updateDimmerPersist : value must be between 0 and 255',
-            true);
+        logger.log('In updateDimmerPersist : value must be between 0 and 255');
         return;
     }
 
     updateDimmer(dimmerObject, socket, true);
     apiReq.post('actionneurs/update', dimmerObject);
-    logger.logToFile(config.rootPath + config.logPath, dimmerObject.nom + ' ' + dimmerObject.etat, true);
+    logger.log(dimmerObject.nom + ' ' + dimmerObject.etat);
     io.sockets.emit("messageConsole", df.stringifiedHour() + " " + dimmerObject.nom + ' ' + dimmerObject.etat);
 }
 
 function updateInter(interObject, socket) {
 
     if (interObject.etat < 0 || interObject.etat > 1) {
-        logger.logToFile(config.rootPath + config.logPath,
-            'In updateInter : value must be 0 or 1',
-            true);
+        logger.log('In updateInter : value must be 0 or 1');
     }
 
     if (typeof (interObject) === 'string') {
@@ -211,11 +205,11 @@ function updateInter(interObject, socket) {
 
     var command = getInterCommand(interObject);
     if (command === false) {
-        logger.logToFile(config.rootPath + config.logPath, "Unknown Actuator type " + interObject.type, true);
+        logger.log("Unknown Actuator type " + interObject.type);
         return;
     }
 
-    logger.logToFile(config.rootPath + config.logPath, "update" + interObject.type + " " + interObject.nom, true);
+    logger.log("update" + interObject.type + " " + interObject.nom);
     writeAndDrain(command + '/', function () {
     });
     io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
@@ -250,12 +244,12 @@ function updateScenario(scenario, socket) {
     var now = new Date().getTime();
     var diff = now - lastCall;
     if (diff <= 2000) {
-        logger.logToFile(config.rootPath + config.logPath, "Please wait before two scenarios calls", true);
+        logger.log("Please wait before two scenarios calls");
         return;
     }
 
     if (typeof scenario === "undefined") {
-        logger.logToFile(config.rootPath + config.logPath, "malformed scenario = " + scenario, true);
+        logger.log("malformed scenario = " + scenario);
         return
     }
 
@@ -265,7 +259,7 @@ function updateScenario(scenario, socket) {
 
     var time = 0;
     io.sockets.emit("messageConsole", df.stringifiedHour() + 'updateScenario ' + scenario.nom);
-    logger.logToFile(config.rootPath + config.logPath, 'updateScenario ' + scenario.nom, true);
+    logger.log('updateScenario ' + scenario.nom);
     var items = [];
     for (var idx in scenario.data) {
         items.push(scenario.data[idx]);
@@ -282,7 +276,7 @@ function updateScenario(scenario, socket) {
 function updateThermostat(thermostat, socket, part) {
 
     if (typeof (thermostat) !== 'string' || !part.includes("cons")) {
-        logger.logToFile(config.rootPath + config.logPath, "given value is null", true);
+        logger.log("given value is null");
         return;
     }
 
@@ -369,7 +363,7 @@ function persistThermostat(dataObj) {
 function updateThermostatMode(id) {
 
     if (id === null || id <= 0 || id >= 254) {
-        logger.logToFile(config.rootPath + config.logPath, "given value is null or out of bounds", true);
+        logger.log("given value is null or out of bounds");
     }
 
     apiReq.get("thermostat/mode/" + parseInt(id, 10), (res) => {
@@ -417,7 +411,7 @@ function updateThermostatPlan(id) {
     var time = 0;
 
     if (id === null || id < 0 || id >= 254) {
-        logger.logToFile(config.rootPath + config.logPath, "given value is null or out of bounds", true);
+        logger.log("given value is null or out of bounds");
         return;
     }
 
@@ -463,7 +457,7 @@ function updateThermostatPlan(id) {
                         setTimeout(function () {
                             commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
                             writeAndDrain(commande + '/', function () {
-                                logger.logToFile(config.rootPath + config.logPath, "savePlan " + plan.jour, true);
+                                logger.log("savePlan " + plan.jour);
                                 plan.jour = 0;
                             });
                         }, 200);
