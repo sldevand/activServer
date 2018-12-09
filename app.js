@@ -197,44 +197,49 @@ function updateDimmerPersist(dimmerObject, socket) {
 
 //UPDATE INTER
 function updateInter(interObject, socket) {
-    if (typeof (interObject) === 'string') {
-        interObject = JSON.parse(interObject);
-    }
-    var commande;
-    if (interObject.etat >= 0 && interObject.etat <= 1) {
-        switch (interObject.type) {
-            case "relay":
-                commande = [interObject.module,
-                    interObject.protocole,
-                    interObject.adresse,
-                    interObject.radioid,
-                    interObject.etat
-                ].join('/');
-                break;
-            case "aqua":
 
-                commande = [interObject.module,
-                    interObject.protocole,
-                    interObject.adresse,
-                    interObject.type,
-                    "set", "leds"
-                ].join('/');
-                break;
-            default:
-                logger.logToFile(config.rootPath + config.logPath, "Unknown Actuator type " + interObject.type, true);
-                return;
-
-        }
-        logger.logToFile(config.rootPath + config.logPath, "update" + interObject.type + " " + interObject.nom, true);
-        writeAndDrain(commande + '/', function () {
-        });
-        io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
-        io.sockets.emit('inter', interObject);
-        apiReq.post('actionneurs/update', interObject);
-    } else {
+    if (interObject.etat < 0 || interObject.etat > 1) {
         logger.logToFile(config.rootPath + config.logPath,
             'In updateInter : value must be 0 or 1',
             true);
+    }
+
+    if (typeof (interObject) === 'string') {
+        interObject = JSON.parse(interObject);
+    }
+
+    var command = getInterCommand(interObject);
+    if (command === false) {
+        logger.logToFile(config.rootPath + config.logPath, "Unknown Actuator type " + interObject.type, true);
+        return;
+    }
+
+    logger.logToFile(config.rootPath + config.logPath, "update" + interObject.type + " " + interObject.nom, true);
+    writeAndDrain(command + '/', function () {
+    });
+    io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
+    io.sockets.emit('inter', interObject);
+    apiReq.post('actionneurs/update', interObject);
+}
+
+function getInterCommand(interObject) {
+    switch (interObject.type) {
+        case "relay":
+            return [interObject.module,
+                interObject.protocole,
+                interObject.adresse,
+                interObject.radioid,
+                interObject.etat
+            ].join('/');
+        case "aqua":
+            return [interObject.module,
+                interObject.protocole,
+                interObject.adresse,
+                interObject.type,
+                "set", "leds"
+            ].join('/');
+        default:
+            return false;
     }
 }
 
@@ -372,28 +377,26 @@ function persistThermostat(dataObj) {
 }
 
 function updateThermostatMode(id) {
-    //THERMOPLANIFS
+
+    if (id === null || id <= 0 || id >= 254) {
+        logger.logToFile(config.rootPath + config.logPath, "given value is null or out of bounds", true);
+    }
+
     apiReq.get("thermostat/mode/" + parseInt(id, 10), (res) => {
         res.setEncoding('utf8');
         var rawData = '';
         res.on('data', (chunk) => {
             rawData += chunk;
             var mode = JSON.parse(rawData);
-            if (id != null && id > 0 && id < 254) {
-                var commande = ["nrf24", "node", "2Nodw", "ther", "sel", "mode", mode.id].join('/');
-                writeAndDrain(commande + '/', function () {
-                });
-                refreshThermostat();
-            } else {
-                logger.logToFile(config.rootPath + config.logPath, "given value is null or out of bounds", true);
-            }
+            var commande = ["nrf24", "node", "2Nodw", "ther", "sel", "mode", mode.id].join('/');
+            writeAndDrain(commande + '/', function () {
+            });
         });
     });
 }
 
 function syncThermostatModes() {
     var time = 0;
-    //THERMOPLANIFS
     apiReq.get("thermostat/mode/", (res) => {
         res.setEncoding('utf8');
         var rawData = '';
@@ -444,7 +447,7 @@ function updateThermostatPlan(id) {
             var com = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/');
             writeAndDrain(com + '/', function () {
             });
-            var count = 1;
+
             setTimeout(function () {
                 plans.forEach(function (plan) {
                     setTimeout(function () {
@@ -471,6 +474,7 @@ function updateThermostatPlan(id) {
                             commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
                             writeAndDrain(commande + '/', function () {
                                 logger.logToFile(config.rootPath + config.logPath, "savePlan " + plan.jour, true);
+                                plan.jour=0;
                             });
                         }, 200);
 
