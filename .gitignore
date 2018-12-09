@@ -65,3 +65,15 @@ changeuser
 config/config.ini
 log.txt
 # End of https://www.gitignore.io/api/node
+
+\.idea/workspace\.xml
+
+\.idea/activServer\.iml
+
+\.idea/jsLibraryMappings\.xml
+
+\.idea/misc\.xml
+
+\.idea/modules\.xml
+
+\.idea/vcs\.xml

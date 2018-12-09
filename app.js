@@ -461,16 +461,16 @@ function updateThermostatPlan(id) {
                             h1Start, h1Stop, h2Start, h2Stop
                         ].join('/');
                         writeAndDrain(commande + '/', function () {
-                            if (parseInt(plan.jour) < 7) {
-                                return;
-                            }
-
-                            setTimeout(function () {
-                                commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
-                                writeAndDrain(commande + '/', function () {
-                                });
-                            }, 200);
                         });
+                        if (parseInt(plan.jour) < 7) {
+                            return;
+                        }
+
+                        setTimeout(function () {
+                            commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
+                            writeAndDrain(commande + '/', function () {
+                            });
+                        }, 200);
                     }, time * 120);
                     time++;
                 });
