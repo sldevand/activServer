@@ -138,6 +138,9 @@ port.on('open', function () {
             if (dataObj.valeur2.includes("spok")) {
                 io.sockets.emit("therplansave", "OK");
             }
+            if (dataObj.valeur2.includes("smok")) {
+                io.sockets.emit("thermodesave", "OK");
+            }
         }
     }
     if (dataObj.radioid.includes("therclock")) {
@@ -386,13 +389,26 @@ function syncThermostatModes() {
         var rawData = '';
         res.on('data', (chunk) => {
             rawData += chunk;
+            var timeoutDuration = 300;
             var modes = objToArray(JSON.parse(rawData));
+            var iter = 0;
+
             modes.forEach(function (mode) {
                 setTimeout(function () {
                     var commande = ["nrf24", "node", "2Nodw", "ther", "put", "mode", mode.id, mode.consigne, mode.delta].join('/');
                     writeAndDrain(commande + '/', function () {
                     });
-                }, time * 200);
+
+                    if (iter >= modes.length - 1) {
+                        setTimeout(() => {
+                            var commande = ["nrf24", "node", "2Nodw", "ther", "save", "mode"].join('/');
+                            writeAndDrain(commande + '/', function () {
+                            });
+                            logger.log('Saving thermostat modes');
+                        }, 500);
+                    }
+                    iter++;
+                }, time * timeoutDuration);
                 time++;
             });
         });
