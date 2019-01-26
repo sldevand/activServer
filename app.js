@@ -144,7 +144,10 @@ port.on('open', function () {
         }
     }
     if (dataObj.radioid.includes("therclock")) {
-        var therclockStr = dataObj.valeur1 + " " + dataObj.valeur2;
+
+        const mapDow = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+        var therclockStr = mapDow[dataObj.valeur1] + " " + dataObj.valeur2 + " " + dataObj.valeur3;
+
         io.sockets.emit("therclock", therclockStr);
     }
 
