@@ -295,13 +295,15 @@ function updateThermostat(thermostat, socket, part) {
 
 function updateThermostatRtc() {
     var date = new Date();
+
+    var dow = date.getDay();
     var d = date.getDate();
     var m = date.getMonth() + 1;
     var y = date.getFullYear();
     var h = date.getHours();
     var i = date.getMinutes();
     var s = date.getSeconds();
-    var commande = ["nrf24", "node", "2Nodw", "ther", "put", "rtc", y, m, d, h, i, s].join('/');
+    var commande = ["nrf24", "node", "2Nodw", "ther", "put", "rtc",dow, y, m, d, h, i, s].join('/');
     writeAndDrain(commande + '/', function () {
     });
 }
