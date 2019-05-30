@@ -269,27 +269,32 @@ function updateScenario(scenario, socket) {
         scenario = JSON.parse(scenario);
     }
 
-    apiReq.get('scenarios/'+scenario.id, (scenarioFromApi) => {
-        var time = 0;
-        io.sockets.emit("messageConsole", df.stringifiedHour() + 'updateScenario ' + scenarioFromApi.nom);
-        logger.log('updateScenario ' + scenarioFromApi.nom);
+    apiReq.get('scenarios/'+scenario.id, (res) => {
+        res.setEncoding('utf8');
+        var rawData = '';
+        res.on('data', (chunk) => {
+            rawData += chunk;
+            let scenarioFromApi = JSON.parse(rawData);
+            var time = 0;
+            io.sockets.emit("messageConsole", df.stringifiedHour() + 'updateScenario ' + scenarioFromApi.nom);
+            logger.log('updateScenario ' + scenarioFromApi.nom);
 
-        var items = [];
-        for (var idx in scenarioFromApi.sequences) {
-            for (var idxAction in scenarioFromApi.sequences[idx].actions) {
-                items.push(scenarioFromApi.sequences[idx].actions[idxAction]);
+            var items = [];
+            for (var idx in scenarioFromApi.sequences) {
+                for (var idxAction in scenarioFromApi.sequences[idx].actions) {
+                    items.push(scenarioFromApi.sequences[idx].actions[idxAction]);
+                }
             }
-        }
-        items.forEach(function (val) {
-            setTimeout(function () {
-                updateAction(val, socket);
-            }, time * 500);
-            time++;
+            items.forEach(function (val) {
+                setTimeout(function () {
+                    updateAction(val, socket);
+                }, time * 500);
+                time++;
+            });
         });
     });
 
     lastCall = new Date().getTime();
-
 }
 
 function updateThermostat(thermostat, socket, part) {
