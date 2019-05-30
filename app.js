@@ -34,7 +34,7 @@ io.sockets.on('connection', function (socket) {
     var clientIp = socket.request.connection.remoteAddress;
     logger.log('New connection from ' + clientIp);
 
-    apiReq.get('actionneurs/', (res) => {
+    apiReq.get('actionneurs', (res) => {
         res.setEncoding('utf8');
         var rawData = '';
         res.on('data', (chunk) => {
@@ -156,6 +156,12 @@ port.on('open', function () {
     logger.log(datastr);
 });
 
+function updateAction(action, socket) {
+    var actionneur = action.actionneur;
+    actionneur.etat = action.etat;
+    updateActionneur(actionneur, socket);
+}
+
 function updateActionneur(actionneur, socket) {
     if (actionneur.categorie.includes("inter")) {
         updateInter(actionneur, socket);
@@ -263,20 +269,27 @@ function updateScenario(scenario, socket) {
         scenario = JSON.parse(scenario);
     }
 
-    var time = 0;
-    io.sockets.emit("messageConsole", df.stringifiedHour() + 'updateScenario ' + scenario.nom);
-    logger.log('updateScenario ' + scenario.nom);
-    var items = [];
-    for (var idx in scenario.data) {
-        items.push(scenario.data[idx]);
-    }
-    items.forEach(function (val) {
-        setTimeout(function () {
-            updateActionneur(val, socket);
-        }, time * 500);
-        time++;
+    apiReq.get('scenarios/'+scenario.id, (scenarioFromApi) => {
+        var time = 0;
+        io.sockets.emit("messageConsole", df.stringifiedHour() + 'updateScenario ' + scenarioFromApi.nom);
+        logger.log('updateScenario ' + scenarioFromApi.nom);
+
+        var items = [];
+        for (var idx in scenarioFromApi.sequences) {
+            for (var idxAction in scenarioFromApi.sequences[idx].actions) {
+                items.push(scenarioFromApi.sequences[idx].actions[idxAction]);
+            }
+        }
+        items.forEach(function (val) {
+            setTimeout(function () {
+                updateAction(val, socket);
+            }, time * 500);
+            time++;
+        });
     });
+
     lastCall = new Date().getTime();
+
 }
 
 function updateThermostat(thermostat, socket, part) {
@@ -303,7 +316,7 @@ function updateThermostatRtc() {
     var h = date.getHours();
     var i = date.getMinutes();
     var s = date.getSeconds();
-    var commande = ["nrf24", "node", "2Nodw", "ther", "put", "rtc",dow, y, m, d, h, i, s].join('/');
+    var commande = ["nrf24", "node", "2Nodw", "ther", "put", "rtc", dow, y, m, d, h, i, s].join('/');
     writeAndDrain(commande + '/', function () {
     });
 }
