@@ -159,7 +159,10 @@ port.on('open', function () {
 function updateAction(action, socket) {
     var actionneur = action.actionneur;
     actionneur.etat = action.etat;
-    updateActionneur(actionneur, socket);
+    action.timeout *= 1000;
+    setTimeout(() => {
+        updateActionneur(actionneur, socket);
+    }, action.timeout);
 }
 
 function updateActionneur(actionneur, socket) {
@@ -269,7 +272,7 @@ function updateScenario(scenario, socket) {
         scenario = JSON.parse(scenario);
     }
 
-    apiReq.get('scenarios/'+scenario.id, (res) => {
+    apiReq.get('scenarios/' + scenario.id, (res) => {
         res.setEncoding('utf8');
         var rawData = '';
         res.on('data', (chunk) => {
