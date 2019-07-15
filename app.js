@@ -5,6 +5,7 @@ var CronJob = require('cron').CronJob;
 var logger = require('./logger/logger');
 var df = require('./dateFactory/dateFactory');
 var APIRequest = require('./httpRequest/apiRequest');
+var fetch = require('node-fetch');
 
 //SERVER INIT
 var server = http.createServer();
@@ -156,13 +157,15 @@ port.on('open', function () {
     logger.log(datastr);
 });
 
-function updateAction(action, socket) {
+async function updateAction(action, socket) {
     var actionneur = action.actionneur;
     actionneur.etat = action.etat;
     action.timeout *= 1000;
-    setTimeout(() => {
-        updateActionneur(actionneur, socket);
-    }, action.timeout);
+    if (action.timeout < 500) {
+        await later(500);
+    }
+    await later(action.timeout);
+    updateActionneur(actionneur, socket);
 }
 
 function updateActionneur(actionneur, socket) {
@@ -184,7 +187,7 @@ function updateDimmer(dimmerObject, socket, fromPersist) {
         dimmerObject.radioid,
         dimmerObject.etat
     ].join('/') + '/';
-    writeAndDrain(commande + '/', function () {
+    writeAndDrain(commande + '/', () => {
         if (!fromPersist) {
             socket.broadcast.emit('dimmer', dimmerObject);
             return;
@@ -224,8 +227,8 @@ function updateInter(interObject, socket) {
         return;
     }
 
-    writeAndDrain(command + '/', function () {
-        logger.log("update" + interObject.type + " " + interObject.nom);
+    writeAndDrain(command + '/', () => {
+        logger.log("update" + interObject.type + " " + interObject.nom + ' ' + interObject.etat);
         io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
         io.sockets.emit('inter', interObject);
         apiReq.post('actionneurs/update', interObject);
@@ -255,7 +258,7 @@ function getInterCommand(interObject) {
 
 var lastCall = new Date().getTime();
 
-function updateScenario(scenario, socket) {
+async function updateScenario(scenario, socket) {
     var now = new Date().getTime();
     var diff = now - lastCall;
     if (diff <= 2000) {
@@ -272,32 +275,53 @@ function updateScenario(scenario, socket) {
         scenario = JSON.parse(scenario);
     }
 
-    apiReq.get('scenarios/' + scenario.id, (res) => {
-        res.setEncoding('utf8');
-        var rawData = '';
-        res.on('data', (chunk) => {
-            rawData += chunk;
-            let scenarioFromApi = JSON.parse(rawData);
-            var time = 0;
-            io.sockets.emit("messageConsole", df.stringifiedHour() + 'updateScenario ' + scenarioFromApi.nom);
-            logger.log('updateScenario ' + scenarioFromApi.nom);
+    fetch('http://localhost/activapi.fr/api/scenarios/' + scenario.id)
+        .then((data) => {
+            return data.json();
+        })
+        .then((json) => {
+            let scenarioFromApi = json;
+            logScenarioChanges(scenarioFromApi);
 
-            var items = [];
-            for (var idx in scenarioFromApi.sequences) {
-                for (var idxAction in scenarioFromApi.sequences[idx].actions) {
-                    items.push(scenarioFromApi.sequences[idx].actions[idxAction]);
-                }
-            }
-            items.forEach(function (val) {
-                setTimeout(function () {
-                    updateAction(val, socket);
-                }, time * 500);
-                time++;
-            });
+            //TODO change scenario status flag and log it
+
+            processSequenceItems(flattenSequences(scenarioFromApi), socket)
+                .catch((err) => {
+                    logger.log("Could'nt process Sequence Items : \n Error : " + err)
+                });
+        })
+        .catch((err) => {
+            logger.log(err);
         });
-    });
 
     lastCall = new Date().getTime();
+}
+
+function logScenarioChanges(scenarioFromApi) {
+    let logData = 'updateScenario ' + scenarioFromApi.nom + ' ' + scenarioFromApi.status;
+    io.sockets.emit("messageConsole", df.stringifiedHour() + logData);
+    logger.log(logData);
+}
+
+async function processSequenceItems(items, socket) {
+    for (let item of items) {
+        await updateAction(item, socket);
+    }
+}
+
+function flattenSequences(scenarioFromApi) {
+    var items = [];
+    for (var idx in scenarioFromApi.sequences) {
+        for (var idxAction in scenarioFromApi.sequences[idx].actions) {
+            items.push(scenarioFromApi.sequences[idx].actions[idxAction]);
+        }
+    }
+
+    return items;
+}
+
+function later(t) {
+    return new Promise(resolve => setTimeout(resolve, t));
 }
 
 function updateThermostat(thermostat, socket, part) {
@@ -310,7 +334,7 @@ function updateThermostat(thermostat, socket, part) {
     thermostat = JSON.parse(thermostat);
     var val = thermostat.consigne;
     var commande = ["nrf24", "node", "2Nodw", "ther", "set", part, val].join('/');
-    writeAndDrain(commande + '/', function () {
+    writeAndDrain(commande + '/', () => {
     });
 }
 
@@ -325,13 +349,13 @@ function updateThermostatRtc() {
     var i = date.getMinutes();
     var s = date.getSeconds();
     var commande = ["nrf24", "node", "2Nodw", "ther", "put", "rtc", dow, y, m, d, h, i, s].join('/');
-    writeAndDrain(commande + '/', function () {
+    writeAndDrain(commande + '/', () => {
     });
 }
 
 function getThermostatClock() {
     var commande = ["nrf24", "node", "2Nodw", "ther", "get", "rtc"].join('/');
-    writeAndDrain(commande + '/', function () {
+    writeAndDrain(commande + '/', () => {
     });
 }
 
@@ -344,19 +368,19 @@ function updateAquariumClock() {
     var i = date.getMinutes();
     var s = date.getSeconds();
     var commande = ["nrf24", "node", "3Nodw", "aqua", "put", "rtc", y, m, d, h, i, s].join('/');
-    writeAndDrain(commande + '/', function () {
+    writeAndDrain(commande + '/', () => {
     });
 }
 
 function getAquariumClock() {
     var commande = ["nrf24", "node", "3Nodw", "aqua", "get", "rtc"].join('/');
-    writeAndDrain(commande + '/', function () {
+    writeAndDrain(commande + '/', () => {
     });
 }
 
 function refreshThermostat() {
     var commande = ["nrf24", "node", "2Nodw", "ther", "get", "info"].join('/');
-    writeAndDrain(commande + '/', function () {
+    writeAndDrain(commande + '/', () => {
     });
 }
 
@@ -402,7 +426,7 @@ function updateThermostatMode(id) {
             rawData += chunk;
             var mode = JSON.parse(rawData);
             var commande = ["nrf24", "node", "2Nodw", "ther", "sel", "mode", mode.id].join('/');
-            writeAndDrain(commande + '/', function () {
+            writeAndDrain(commande + '/', () => {
             });
         });
     });
@@ -420,15 +444,15 @@ function syncThermostatModes() {
             var iter = 0;
 
             modes.forEach(function (mode) {
-                setTimeout(function () {
+                setTimeout(() => {
                     var commande = ["nrf24", "node", "2Nodw", "ther", "put", "mode", mode.id, mode.consigne, mode.delta].join('/');
-                    writeAndDrain(commande + '/', function () {
+                    writeAndDrain(commande + '/', () => {
                     });
 
                     if (iter >= modes.length - 1) {
                         setTimeout(() => {
                             var commande = ["nrf24", "node", "2Nodw", "ther", "save", "mode"].join('/');
-                            writeAndDrain(commande + '/', function () {
+                            writeAndDrain(commande + '/', () => {
                             });
                             logger.log('Saving thermostat modes');
                         }, 500);
@@ -459,7 +483,7 @@ function updateThermostatPlan(id) {
 
     if (id === 0) {
         var commande = ["nrf24", "node", "2Nodw", "ther", "set", "plan", id].join('/');
-        writeAndDrain(commande + '/', function () {
+        writeAndDrain(commande + '/', () => {
         });
         return;
     }
@@ -471,12 +495,12 @@ function updateThermostatPlan(id) {
             rawData += chunk;
             var plans = objToArray(JSON.parse(rawData));
             var com = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/');
-            writeAndDrain(com + '/', function () {
+            writeAndDrain(com + '/', () => {
             });
 
-            setTimeout(function () {
+            setTimeout(() => {
                 plans.forEach(function (plan) {
-                    setTimeout(function () {
+                    setTimeout(() => {
                         h1Start = plan.heure1Start;
                         h1Stop = plan.heure1Stop;
                         h2Start = plan.heure2Start;
@@ -489,16 +513,16 @@ function updateThermostatPlan(id) {
                             plan.jour, plan.modeid, plan.defaultModeid,
                             h1Start, h1Stop, h2Start, h2Stop
                         ].join('/');
-                        writeAndDrain(commande + '/', function () {
+                        writeAndDrain(commande + '/', () => {
                         });
 
                         if (parseInt(plan.jour) < 7) {
                             return;
                         }
 
-                        setTimeout(function () {
+                        setTimeout(() => {
                             commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
-                            writeAndDrain(commande + '/', function () {
+                            writeAndDrain(commande + '/', () => {
                                 logger.log("savePlan " + plan.jour);
                                 plan.jour = 0;
                             });
@@ -543,7 +567,7 @@ function persistSensor(dataTab, dataObj) {
 }
 
 function writeAndDrain(data, callback) {
-    port.write(data, function () {
+    port.write(data, () => {
     });
     port.drain(callback);
 }
