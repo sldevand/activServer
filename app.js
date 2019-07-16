@@ -5,11 +5,12 @@ var CronJob = require('cron').CronJob;
 var logger = require('./logger/logger');
 var df = require('./dateFactory/dateFactory');
 var APIRequest = require('./httpRequest/apiRequest');
-var fetch = require('node-fetch');
+var APIFetchRequest = require('./httpRequest/apiFetchRequest');
 
 //SERVER INIT
 var server = http.createServer();
 var apiReq = new APIRequest(http, 'localhost', '/activapi.fr/api/');
+var apiFetchReq = new APIFetchRequest('http://localhost/activapi.fr/api');
 var io = require('socket.io').listen(server);
 
 //CRONJOBS
@@ -158,7 +159,7 @@ port.on('open', function () {
 });
 
 async function updateAction(action, socket) {
-    var actionneur = action.actionneur;
+    let actionneur = action.actionneur;
     actionneur.etat = action.etat;
     action.timeout *= 1000;
     if (action.timeout < 500) {
@@ -169,6 +170,8 @@ async function updateAction(action, socket) {
 }
 
 function updateActionneur(actionneur, socket) {
+    logger.log(actionneur.nom);
+    return;
     if (actionneur.categorie.includes("inter")) {
         updateInter(actionneur, socket);
     }
@@ -275,20 +278,20 @@ async function updateScenario(scenario, socket) {
         scenario = JSON.parse(scenario);
     }
 
-    fetch('http://localhost/activapi.fr/api/scenarios/' + scenario.id)
-        .then((data) => {
-            return data.json();
+    apiFetchReq.get('scenarios', scenario.id)
+        .then((scenario) => {
+            return changeScenarioStatus(scenario, 'play')
         })
-        .then((json) => {
-            let scenarioFromApi = json;
-            logScenarioChanges(scenarioFromApi);
-
-            //TODO change scenario status flag and log it
-
-            processSequenceItems(flattenSequences(scenarioFromApi), socket)
-                .catch((err) => {
-                    logger.log("Could'nt process Sequence Items : \n Error : " + err)
-                });
+        .then((scenario) => {
+            logScenarioChanges(scenario);
+            return processSequenceItems(flattenSequences(scenario), socket);
+        })
+        .then((scenario) => {
+            return changeScenarioStatus(scenario, 'stop')
+        })
+        .then((scenario) => {
+            // console.log(scenario);
+            logScenarioChanges(scenario);
         })
         .catch((err) => {
             logger.log(err);
@@ -297,23 +300,31 @@ async function updateScenario(scenario, socket) {
     lastCall = new Date().getTime();
 }
 
-function logScenarioChanges(scenarioFromApi) {
-    let logData = 'updateScenario ' + scenarioFromApi.nom + ' ' + scenarioFromApi.status;
+async function changeScenarioStatus(scenario, status) {
+    scenario.status = status;
+    return await apiFetchReq.send('PUT', 'scenarios/update', scenario);
+}
+
+function logScenarioChanges(scenario) {
+    let logData = 'updateScenario ' + scenario.nom + ' ' + scenario.status;
     io.sockets.emit("messageConsole", df.stringifiedHour() + logData);
     logger.log(logData);
 }
 
-async function processSequenceItems(items, socket) {
+async function processSequenceItems(scenario, socket) {
+    let items = flattenSequences(scenario);
     for (let item of items) {
         await updateAction(item, socket);
     }
+
+   return await scenario;
 }
 
-function flattenSequences(scenarioFromApi) {
+function flattenSequences(scenario) {
     var items = [];
-    for (var idx in scenarioFromApi.sequences) {
-        for (var idxAction in scenarioFromApi.sequences[idx].actions) {
-            items.push(scenarioFromApi.sequences[idx].actions[idxAction]);
+    for (let idx in scenario.sequences) {
+        for (let idxAction in scenario.sequences[idx].actions) {
+            items.push(scenario.sequences[idx].actions[idxAction]);
         }
     }
 
