@@ -27,6 +27,8 @@ var rtcUpdateAquariumCronJob = new CronJob('0 6 0 * * *', function () {
     updateAquariumClock();
 }, null, true, 'Europe/Paris');
 
+resetScenariosStatuses();
+
 //GLOBAL VARS
 var capteurs = [];
 var thermostats = [];
@@ -160,14 +162,15 @@ port.on('open', function () {
     logger.log(datastr);
 });
 
-// function later(t) {
-//     return new Promise((resolve) => {
-//         let timeout = setTimeout(() => {
-//
-//         }, t);
-//         resolve(timeout);
-//     });
-// }
+function resetScenariosStatuses() {
+    apiFetchReq.get('scenarios/reset')
+        .then((json) => {
+            logger.log(json.success);
+        })
+        .catch(err => {
+            logger.log(err);
+        });
+}
 
 function updateActionneur(actionneur, socket) {
     if (actionneur.categorie.includes("inter")) {

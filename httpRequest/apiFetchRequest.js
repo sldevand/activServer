@@ -23,7 +23,11 @@ module.exports = function ApiFetchRequest(p_basePath) {
                 })
         },
         get: (endpoint, id) => {
-            return fetch(basePath + "/" + endpoint + '/' + id)
+            let url = basePath + "/" + endpoint;
+            if (id !== undefined) {
+                url += '/' + id;
+            }
+            return fetch(url)
                 .then((response) => {
                     return response.json();
                 })
