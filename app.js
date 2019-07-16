@@ -6,6 +6,7 @@ var logger = require('./logger/logger');
 var df = require('./dateFactory/dateFactory');
 var APIRequest = require('./httpRequest/apiRequest');
 var APIFetchRequest = require('./httpRequest/apiFetchRequest');
+var Timeout = require('await-timeout');
 
 //SERVER INIT
 var server = http.createServer();
@@ -29,6 +30,7 @@ var rtcUpdateAquariumCronJob = new CronJob('0 6 0 * * *', function () {
 //GLOBAL VARS
 var capteurs = [];
 var thermostats = [];
+var timers = [];
 
 //SOCKETIO LISTENERS
 io.sockets.on('connection', function (socket) {
@@ -72,7 +74,7 @@ io.sockets.on('connection', function (socket) {
     }).on('updateInter', function (interObject) {
         updateInter(interObject, socket);
     }).on("updateScenario", function (scenario) {
-        updateScenario(scenario, socket);
+        launchScenario(scenario, socket);
     }).on("updateTherCons", function (thermostat) {
         updateThermostat(thermostat, socket, "cons");
     }).on("updateTherDelta", function (thermostat) {
@@ -158,20 +160,16 @@ port.on('open', function () {
     logger.log(datastr);
 });
 
-async function updateAction(action, socket) {
-    let actionneur = action.actionneur;
-    actionneur.etat = action.etat;
-    action.timeout *= 1000;
-    if (action.timeout < 500) {
-        await later(500);
-    }
-    await later(action.timeout);
-    updateActionneur(actionneur, socket);
-}
+// function later(t) {
+//     return new Promise((resolve) => {
+//         let timeout = setTimeout(() => {
+//
+//         }, t);
+//         resolve(timeout);
+//     });
+// }
 
 function updateActionneur(actionneur, socket) {
-    logger.log(actionneur.nom);
-    return;
     if (actionneur.categorie.includes("inter")) {
         updateInter(actionneur, socket);
     }
@@ -261,63 +259,107 @@ function getInterCommand(interObject) {
 
 var lastCall = new Date().getTime();
 
-async function updateScenario(scenario, socket) {
+function launchScenario(pScenario, socket) {
     var now = new Date().getTime();
     var diff = now - lastCall;
-    if (diff <= 2000) {
-        logger.log("Please wait before two scenarios calls");
-        return;
-    }
+    // if (diff <= 2000) {
+    //     logger.log("Please wait before two scenarios calls");
+    //     return;
+    // }
 
-    if (typeof (scenario) === "undefined") {
-        logger.log("malformed scenario = " + scenario);
+    if (typeof (pScenario) === "undefined") {
+        logger.log("malformed scenario = " + pScenario);
         return
     }
 
-    if (typeof (scenario) === 'string') {
-        scenario = JSON.parse(scenario);
+    if (typeof (pScenario) === 'string') {
+        pScenario = JSON.parse(pScenario);
     }
 
-    apiFetchReq.get('scenarios', scenario.id)
+    let timer = new Timeout();
+    apiFetchReq.get('scenarios', pScenario.id)
         .then((scenario) => {
+            if (scenario.status === 'play') {
+                let logData = 'Scenario ' + scenario.nom + ' is running';
+                io.sockets.emit("messageConsole", df.stringifiedHour() + logData);
+
+                return Promise.reject(logData);
+            }
             return changeScenarioStatus(scenario, 'play')
         })
         .then((scenario) => {
             logScenarioChanges(scenario);
-            return processSequenceItems(flattenSequences(scenario), socket);
+            timers.push({
+                'scenario': scenario,
+                'timer': timer
+            });
+
+            return processSequenceItems(scenario, socket, timer);
         })
         .then((scenario) => {
             return changeScenarioStatus(scenario, 'stop')
         })
         .then((scenario) => {
-            // console.log(scenario);
+            stopScenario(scenario.id);
             logScenarioChanges(scenario);
         })
         .catch((err) => {
             logger.log(err);
+        })
+        .finally(() => {
+            timers.pop();
         });
 
     lastCall = new Date().getTime();
 }
 
+function stopScenario(id) {
+    let obj = timers.find(o => o.scenario.id === id);
+    obj.timer.clear();
+    logger.log('Scenario ' + obj.scenario.nom + ' timer is cleared');
+}
+
 async function changeScenarioStatus(scenario, status) {
     scenario.status = status;
+    let scenarioEmit = {
+        "id": scenario.id,
+        "status": scenario.status
+    };
+    io.sockets.emit("scenarioStatusChange", scenarioEmit);
     return await apiFetchReq.send('PUT', 'scenarios/update', scenario);
 }
 
 function logScenarioChanges(scenario) {
-    let logData = 'updateScenario ' + scenario.nom + ' ' + scenario.status;
+    let logData = 'Scenario ' + scenario.nom + ' ' + scenario.status;
     io.sockets.emit("messageConsole", df.stringifiedHour() + logData);
     logger.log(logData);
 }
 
-async function processSequenceItems(scenario, socket) {
+async function processSequenceItems(scenario, socket, timer) {
     let items = flattenSequences(scenario);
     for (let item of items) {
-        await updateAction(item, socket);
+        await updateAction(item, socket, timer);
+        timer.clear();
+
+    }
+    return await scenario;
+}
+
+async function updateAction(action, socket, timer) {
+    let actionneur = action.actionneur;
+    actionneur.etat = action.etat;
+    action.timeout *= 1000;
+    if (action.timeout < 300) {
+        await Timeout.set(300);
     }
 
-   return await scenario;
+    return timer.set(action.timeout)
+        .then(() => {
+            updateActionneur(actionneur, socket);
+        })
+        .catch(err => {
+            logger.log(err)
+        });
 }
 
 function flattenSequences(scenario) {
@@ -329,10 +371,6 @@ function flattenSequences(scenario) {
     }
 
     return items;
-}
-
-function later(t) {
-    return new Promise(resolve => setTimeout(resolve, t));
 }
 
 function updateThermostat(thermostat, socket, part) {
