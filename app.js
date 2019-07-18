@@ -260,16 +260,7 @@ function getInterCommand(interObject) {
     }
 }
 
-var lastCall = new Date().getTime();
-
 function launchScenario(pScenario, socket) {
-    var now = new Date().getTime();
-    var diff = now - lastCall;
-    // if (diff <= 2000) {
-    //     logger.log("Please wait before two scenarios calls");
-    //     return;
-    // }
-
     if (typeof (pScenario) === "undefined") {
         logger.log("malformed scenario = " + pScenario);
         return
@@ -312,8 +303,6 @@ function launchScenario(pScenario, socket) {
         .finally(() => {
             timers.pop();
         });
-
-    lastCall = new Date().getTime();
 }
 
 function stopScenario(id) {
