@@ -33,6 +33,7 @@ resetScenariosStatuses();
 var capteurs = [];
 var thermostats = [];
 var timers = [];
+const ACTIONS_DELAY = 300;
 
 //SOCKETIO LISTENERS
 io.sockets.on('connection', function (socket) {
@@ -341,8 +342,8 @@ async function updateAction(action, socket, timer) {
     let actionneur = action.actionneur;
     actionneur.etat = action.etat;
     action.timeout *= 1000;
-    if (action.timeout < 300) {
-        await Timeout.set(300);
+    if (action.timeout < ACTIONS_DELAY) {
+        await Timeout.set(ACTIONS_DELAY);
     }
 
     return timer.set(action.timeout)
