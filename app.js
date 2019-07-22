@@ -78,6 +78,10 @@ io.sockets.on('connection', function (socket) {
         updateInter(interObject, socket);
     }).on("updateScenario", function (scenario) {
         launchScenario(scenario, socket);
+    }).on("stopScenario", function (scenario) {
+        stopScenario(scenario);
+    }).on("watchScenario", function (scenario) {
+        watchScenarioRemainingTime(scenario);
     }).on("updateTherCons", function (thermostat) {
         updateThermostat(thermostat, socket, "cons");
     }).on("updateTherDelta", function (thermostat) {
@@ -277,6 +281,7 @@ function launchScenario(pScenario, socket) {
             if (scenario.status === 'play') {
                 let logData = 'Scenario ' + scenario.nom + ' is running';
                 io.sockets.emit("messageConsole", df.stringifiedHour() + logData);
+                watchScenarioRemainingTime(scenario);
 
                 return Promise.reject(logData);
             }
@@ -284,32 +289,53 @@ function launchScenario(pScenario, socket) {
         })
         .then((scenario) => {
             logScenarioChanges(scenario);
+            scenario.startTime = Date.now();
+            scenario.stopTime = scenario.startTime + getScenarioTotalTimeout(scenario);
             timers.push({
                 'scenario': scenario,
-                'timer': timer
+                'timer': timer,
+                'watcher': setInterval(()=>{
+                    watchScenarioRemainingTime(scenario);
+                },5000)
             });
-
+            watchScenarioRemainingTime(scenario);
             return processSequenceItems(scenario, socket, timer);
         })
         .then((scenario) => {
-            return changeScenarioStatus(scenario, 'stop')
-        })
-        .then((scenario) => {
-            stopScenario(scenario.id);
-            logScenarioChanges(scenario);
+            stopScenario(scenario);
         })
         .catch((err) => {
             logger.log(err);
-        })
-        .finally(() => {
-            timers.pop();
         });
 }
 
-function stopScenario(id) {
-    let obj = timers.find(o => o.scenario.id === id);
-    obj.timer.clear();
-    logger.log('Scenario ' + obj.scenario.nom + ' timer is cleared');
+function stopScenario(scenario) {
+    changeScenarioStatus(scenario, 'stop')
+        .then(scenario => {
+            logScenarioChanges(scenario);
+            for (let key in timers){
+                if(timers[key].scenario.id === scenario.id){
+                    logger.log('Scenario ' + timers[key].scenario.nom + ' timer is cleared');
+                    clearTimeout(timers[key].watcher);
+                    timers.splice(key,1);
+                    return;
+                }
+            }
+        })
+        .catch((err) => {
+            logger.log(err);
+        });
+}
+
+function watchScenarioRemainingTime(scenario) {
+    let obj = timers.find(o => o.scenario.id === scenario.id);
+    if (!obj) {
+        logger.log('no obj found');
+        return;
+    }
+    scenario.remainingTime = obj.scenario.stopTime - Date.now();
+    io.sockets.emit("scenarioFeedback", scenario);
+
 }
 
 async function changeScenarioStatus(scenario, status) {
@@ -325,6 +351,7 @@ async function changeScenarioStatus(scenario, status) {
 function logScenarioChanges(scenario) {
     let logData = 'Scenario ' + scenario.nom + ' ' + scenario.status;
     io.sockets.emit("messageConsole", df.stringifiedHour() + logData);
+    io.sockets.emit("scenarioFeedback", scenario);
     logger.log(logData);
 }
 
@@ -336,6 +363,16 @@ async function processSequenceItems(scenario, socket, timer) {
 
     }
     return await scenario;
+}
+
+function getScenarioTotalTimeout(scenario) {
+    let items = flattenSequences(scenario);
+    let total = 0;
+    for (let item of items) {
+        total += item.timeout * 1000;
+    }
+
+    return total;
 }
 
 async function updateAction(action, socket, timer) {
