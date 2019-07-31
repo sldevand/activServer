@@ -18,7 +18,10 @@ var config = {
     portPath: iniFile[env].portPath,
     rootPath: iniFile[env].rootPath,
     logPath: iniFile[env].logPath,
-    sep: iniFile[env].sep
-}
+    sep: iniFile[env].sep,
+    ip: iniFile['NETWORK'].ip,
+    port: iniFile['NETWORK'].port,
+    apiUri:iniFile['API'].address
+};
 
 module.exports = config;

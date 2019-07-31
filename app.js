@@ -10,20 +10,20 @@ var Timeout = require('await-timeout');
 
 //SERVER INIT
 var server = http.createServer();
-var apiReq = new APIRequest(http, 'localhost', '/activapi.fr/api/');
-var apiFetchReq = new APIFetchRequest('http://localhost/activapi.fr/api');
+var apiReq = new APIRequest(http, config.ip, '/' + config.apiUri + '/');
+var apiFetchReq = new APIFetchRequest('http://' + config.ip + '/' + config.apiUri);
 var io = require('socket.io').listen(server);
 
 //CRONJOBS
-var logRefreshCronJob = new CronJob('0 */30 * * * *', function () {
+var logRefreshCronJob = new CronJob('0 */30 * * * *', () => {
     apiReq.get('thermostat/log/refresh');
 }, null, true, 'Europe/Paris');
 
-var rtcUpdateThermostatCronJob = new CronJob('0 5 0 * * *', function () {
+var rtcUpdateThermostatCronJob = new CronJob('0 5 0 * * *', () => {
     updateThermostatRtc();
 }, null, true, 'Europe/Paris');
 
-var rtcUpdateAquariumCronJob = new CronJob('0 6 0 * * *', function () {
+var rtcUpdateAquariumCronJob = new CronJob('0 6 0 * * *', () => {
     updateAquariumClock();
 }, null, true, 'Europe/Paris');
 
@@ -36,7 +36,7 @@ var timers = [];
 const ACTIONS_DELAY = 300;
 
 //SOCKETIO LISTENERS
-io.sockets.on('connection', function (socket) {
+io.sockets.on('connection', socket => {
 
     var clientIp = socket.request.connection.remoteAddress;
     logger.log('New connection from ' + clientIp);
@@ -64,21 +64,21 @@ io.sockets.on('connection', function (socket) {
         });
     });
 
-    socket.on('messageAll', function (message) {
+    socket.on('messageAll', message => {
         logger.log('messageAll From : ' + clientIp + ' ' + message);
         socket.broadcast.emit("message", message);
-    }).on('command', function (message) {
-        writeAndDrain(message, function () {
+    }).on('command', message => {
+        writeAndDrain(message, () => {
         });
-    }).on('updateDimmer', function (dimmerObject) {
+    }).on('updateDimmer', dimmerObject => {
         updateDimmer(dimmerObject, socket, false);
-    }).on('updateDimmerPersist', function (dimmerObject) {
+    }).on('updateDimmerPersist', dimmerObject => {
         updateDimmerPersist(dimmerObject, socket);
-    }).on('updateInter', function (interObject) {
+    }).on('updateInter', interObject => {
         updateInter(interObject, socket);
-    }).on("updateScenario", function (scenario) {
+    }).on("updateScenario", scenario => {
         launchScenario(scenario, socket);
-    }).on("stopScenario", function (scenario) {
+    }).on("stopScenario", scenario => {
         stopScenario(scenario);
     }).on("watchScenario", function (scenario) {
         watchScenarioRemainingTime(scenario);
@@ -117,13 +117,13 @@ var port = new SerialPort(config.portPath, {
     baudRate: 9600
 });
 
-port.on('open', function () {
+port.on('open', () => {
     logger.log("port " + config.portPath + " opened");
-}).on('error', function (err) {
+}).on('error', err => {
     logger.log(err.message);
-}).on('close', function () {
+}).on('close', () => {
     logger.log("port " + config.portPath + " closed");
-}).on('data', function (data) {
+}).on('data', data => {
     var datastr = data.toString();
     if (!datastr || /^\s*$/.test(datastr)) {
         return;
@@ -294,9 +294,9 @@ function launchScenario(pScenario, socket) {
             timers.push({
                 'scenario': scenario,
                 'timer': timer,
-                'watcher': setInterval(()=>{
+                'watcher': setInterval(() => {
                     watchScenarioRemainingTime(scenario);
-                },5000)
+                }, 5000)
             });
             watchScenarioRemainingTime(scenario);
             return processSequenceItems(scenario, socket, timer);
@@ -313,13 +313,14 @@ function stopScenario(scenario) {
     changeScenarioStatus(scenario, 'stop')
         .then(scenario => {
             logScenarioChanges(scenario);
-            for (let key in timers){
-                if(timers[key].scenario.id === scenario.id){
-                    logger.log('Scenario ' + timers[key].scenario.nom + ' timer is cleared');
-                    clearTimeout(timers[key].watcher);
-                    timers.splice(key,1);
-                    return;
+            for (let key in timers) {
+                if (timers[key].scenario.id !== scenario.id) {
+                    continue;
                 }
+                logger.log('Scenario ' + timers[key].scenario.nom + ' timer is cleared');
+                clearTimeout(timers[key].watcher);
+                timers.splice(key, 1);
+                return;
             }
         })
         .catch((err) => {
@@ -350,7 +351,7 @@ async function changeScenarioStatus(scenario, status) {
 
 function logScenarioChanges(scenario) {
     let logData = 'Scenario ' + scenario.nom + ' ' + scenario.status;
-    io.sockets.emit("messageConsole", df.stringifiedHour() + logData);
+    io.sockets.emit("messageConsole", df.stringifiedHour() + " " + logData);
     io.sockets.emit("scenarioFeedback", scenario);
     logger.log(logData);
 }
@@ -618,30 +619,39 @@ function updateThermostatPlan(id) {
 function persistSensor(dataTab, dataObj) {
     var uri = 'mesures/add-' + dataObj.radioid + '-' + dataObj.valeur1;
     if (dataTab.length > 2) uri += '-' + dataObj.valeur2;
-    apiReq.get(uri);
-    capteurs.forEach(function (capteur, index) {
-        if (capteur.radioid !== dataObj.radioid) {
+    apiFetchReq.get(uri)
+        .then((data) => {
+            emitSensors(dataObj);
+        })
+        .catch(err => logger.log(err));
+}
+
+function emitSensors(dataObj) {
+    capteurs.forEach((sensor) => {
+        if (sensor.radioid !== dataObj.radioid) {
             return;
         }
-        capteur.valeur1 = dataObj.valeur1;
-        capteur.valeur2 = dataObj.valeur2;
-        if (undefined === capteur.valeur2) {
-            capteur.valeur2 = "";
+        sensor.valeur1 = dataObj.valeur1;
+        sensor.valeur2 = dataObj.valeur2;
+        if (undefined === sensor.valeur2) {
+            sensor.valeur2 = "";
         }
-        capteur.releve = df.nowDatetime();
-        capteur.actif = 1;
+        sensor.releve = df.nowDatetime();
+        sensor.actif = 1;
+        let eventName = "";
         if (dataObj.radioid.includes("ctn10") ||
             dataObj.radioid.includes("dht11")) {
-            io.sockets.emit('thermo', capteur);
+            eventName = 'thermo';
+        } else if (dataObj.radioid.includes("tinfo")) {
+            eventName = 'teleinfo';
+        } else if (dataObj.radioid.includes("therm")) {
+            eventName = 'chaudiere';
+        }
+
+        if (eventName === "") {
             return;
         }
-        if (dataObj.radioid.includes("tinfo")) {
-            io.sockets.emit('teleinfo', capteur);
-            return;
-        }
-        if (dataObj.radioid.includes("therm")) {
-            io.sockets.emit('chaudiere', capteur);
-        }
+        io.sockets.emit(eventName, sensor);
     });
 }
 
