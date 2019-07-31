@@ -3,17 +3,20 @@ module.exports = function ApiFetchRequest(p_basePath) {
     let basePath = p_basePath;
 
     return {
-        send: (method, endpoint, data, id) => {
+        send: (method, endpoint, data, stringifyBody = true, id = undefined) => {
             let url = basePath + "/" + endpoint;
             if (id !== undefined) {
                 url += '/' + id;
             }
+            if (stringifyBody) {
+                data = JSON.stringify(
+                    data
+                );
+            }
             return fetch(url,
                 {
                     method: method,
-                    body: JSON.stringify(
-                        data
-                    )
+                    body: data
                 })
                 .then((response) => {
                     return response.json();
