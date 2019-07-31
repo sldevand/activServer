@@ -11,7 +11,7 @@ class ActuatorsManager extends Manager {
     }
 
     post(data){
-        return this.apiFetchReq.send('POST', 'actionneurs/update', data, false);
+        return this.apiFetchReq.send('POST', 'actionneurs/update', data);
     }
 
     update(actuator, socket) {
@@ -57,9 +57,15 @@ class ActuatorsManager extends Manager {
         }
 
         this.updateDimmer(dimmerObject, socket, true);
-        this.post(dimmerObject);
-        this.logger.log(dimmerObject.nom + ' ' + dimmerObject.etat);
-        this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + dimmerObject.nom + ' ' + dimmerObject.etat);
+        this.post(dimmerObject).then(res => {
+            if(res && res.error){
+               return this.logger.log(res.error);
+            }
+
+            this.logger.log(dimmerObject.nom + ' ' + dimmerObject.etat);
+            this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + dimmerObject.nom + ' ' + dimmerObject.etat);
+        })
+            .catch(err => console.log(err));
     }
 
     updateInter(interObject, socket) {

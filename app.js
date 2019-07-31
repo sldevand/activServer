@@ -56,14 +56,14 @@ io.sockets.on('connection', socket => {
         logger.log('messageAll From : ' + clientIp + ' ' + message);
         socket.broadcast.emit("message", message);
     }).on('command', message => {
-        writeAndDrain(message, () => {
+        portManager.writeAndDrain(message, () => {
         });
     }).on('updateDimmer', dimmerObject => {
-        updateDimmer(dimmerObject, socket, false);
+        actuatorsManager.updateDimmer(dimmerObject, socket, false);
     }).on('updateDimmerPersist', dimmerObject => {
-        updateDimmerPersist(dimmerObject, socket);
+        actuatorsManager.updateDimmerPersist(dimmerObject, socket);
     }).on('updateInter', interObject => {
-        updateInter(interObject, socket);
+        actuatorsManager.updateInter(interObject, socket);
     }).on("updateScenario", scenario => {
         launchScenario(scenario, socket);
     }).on("stopScenario", scenario => {
@@ -166,94 +166,6 @@ function resetScenariosStatuses() {
         .catch(err => {
             logger.log(err);
         });
-}
-
-function updateActionneur(actionneur, socket) {
-    if (actionneur.categorie.includes("inter")) {
-        updateInter(actionneur, socket);
-    }
-    if (actionneur.categorie.includes("dimmer")) {
-        updateDimmerPersist(actionneur, socket);
-    }
-}
-
-function updateDimmer(dimmerObject, socket, fromPersist) {
-    if (dimmerObject.etat < 0 || dimmerObject.etat > 255) {
-        logger.log('In updateDimmer : value must be between 0 and 255');
-        return;
-    }
-
-    var commande = [dimmerObject.module,
-        dimmerObject.radioid,
-        dimmerObject.etat
-    ].join('/') + '/';
-    portManager.writeAndDrain(commande + '/', () => {
-        if (!fromPersist) {
-            socket.broadcast.emit('dimmer', dimmerObject);
-            return;
-        }
-        io.sockets.emit('dimmer', dimmerObject);
-    });
-}
-
-function updateDimmerPersist(dimmerObject, socket) {
-    if (typeof (dimmerObject) === 'string') {
-        dimmerObject = JSON.parse(dimmerObject);
-    }
-
-    if (dimmerObject.etat < 0 || dimmerObject.etat > 255) {
-        logger.log('In updateDimmerPersist : value must be between 0 and 255');
-        return;
-    }
-
-    updateDimmer(dimmerObject, socket, true);
-    apiReq.post('actionneurs/update', dimmerObject);
-    logger.log(dimmerObject.nom + ' ' + dimmerObject.etat);
-    io.sockets.emit("messageConsole", df.stringifiedHour() + " " + dimmerObject.nom + ' ' + dimmerObject.etat);
-}
-
-function updateInter(interObject, socket) {
-    if (interObject.etat < 0 || interObject.etat > 1) {
-        logger.log('In updateInter : value must be 0 or 1');
-    }
-
-    if (typeof (interObject) === 'string') {
-        interObject = JSON.parse(interObject);
-    }
-
-    var command = getInterCommand(interObject);
-    if (command === false) {
-        logger.log("Unknown Actuator type " + interObject.type);
-        return;
-    }
-
-    writeAndDrain(command + '/', () => {
-        logger.log("update" + interObject.type + " " + interObject.nom + ' ' + interObject.etat);
-        io.sockets.emit("messageConsole", df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
-        io.sockets.emit('inter', interObject);
-        apiReq.post('actionneurs/update', interObject);
-    });
-}
-
-function getInterCommand(interObject) {
-    switch (interObject.type) {
-        case "relay":
-            return [interObject.module,
-                interObject.protocole,
-                interObject.adresse,
-                interObject.radioid,
-                interObject.etat
-            ].join('/');
-        case "aqua":
-            return [interObject.module,
-                interObject.protocole,
-                interObject.adresse,
-                interObject.type,
-                "set", "leds"
-            ].join('/');
-        default:
-            return false;
-    }
 }
 
 function launchScenario(pScenario, socket) {
@@ -405,7 +317,7 @@ function updateThermostat(thermostat, socket, part) {
     thermostat = JSON.parse(thermostat);
     var val = thermostat.consigne;
     var commande = ["nrf24", "node", "2Nodw", "ther", "set", part, val].join('/');
-    writeAndDrain(commande + '/', () => {
+    portManager.writeAndDrain(commande + '/', () => {
     });
 }
 
@@ -420,13 +332,13 @@ function updateThermostatRtc() {
     var i = date.getMinutes();
     var s = date.getSeconds();
     var commande = ["nrf24", "node", "2Nodw", "ther", "put", "rtc", dow, y, m, d, h, i, s].join('/');
-    writeAndDrain(commande + '/', () => {
+    portManager.writeAndDrain(commande + '/', () => {
     });
 }
 
 function getThermostatClock() {
     var commande = ["nrf24", "node", "2Nodw", "ther", "get", "rtc"].join('/');
-    writeAndDrain(commande + '/', () => {
+    portManager.writeAndDrain(commande + '/', () => {
     });
 }
 
@@ -439,19 +351,19 @@ function updateAquariumClock() {
     var i = date.getMinutes();
     var s = date.getSeconds();
     var commande = ["nrf24", "node", "3Nodw", "aqua", "put", "rtc", y, m, d, h, i, s].join('/');
-    writeAndDrain(commande + '/', () => {
+    portManager.writeAndDrain(commande + '/', () => {
     });
 }
 
 function getAquariumClock() {
     var commande = ["nrf24", "node", "3Nodw", "aqua", "get", "rtc"].join('/');
-    writeAndDrain(commande + '/', () => {
+    portManager.writeAndDrain(commande + '/', () => {
     });
 }
 
 function refreshThermostat() {
     var commande = ["nrf24", "node", "2Nodw", "ther", "get", "info"].join('/');
-    writeAndDrain(commande + '/', () => {
+    portManager.writeAndDrain(commande + '/', () => {
     });
 }
 
@@ -497,7 +409,7 @@ function updateThermostatMode(id) {
             rawData += chunk;
             var mode = JSON.parse(rawData);
             var commande = ["nrf24", "node", "2Nodw", "ther", "sel", "mode", mode.id].join('/');
-            writeAndDrain(commande + '/', () => {
+            portManager.writeAndDrain(commande + '/', () => {
             });
         });
     });
@@ -517,13 +429,13 @@ function syncThermostatModes() {
             modes.forEach(mode => {
                 setTimeout(() => {
                     var commande = ["nrf24", "node", "2Nodw", "ther", "put", "mode", mode.id, mode.consigne, mode.delta].join('/');
-                    writeAndDrain(commande + '/', () => {
+                    portManager.writeAndDrain(commande + '/', () => {
                     });
 
                     if (iter >= modes.length - 1) {
                         setTimeout(() => {
                             var commande = ["nrf24", "node", "2Nodw", "ther", "save", "mode"].join('/');
-                            writeAndDrain(commande + '/', () => {
+                            portManager.writeAndDrain(commande + '/', () => {
                             });
                             logger.log('Saving thermostat modes');
                         }, 500);
@@ -554,7 +466,7 @@ function updateThermostatPlan(id) {
 
     if (id === 0) {
         var commande = ["nrf24", "node", "2Nodw", "ther", "set", "plan", id].join('/');
-        writeAndDrain(commande + '/', () => {
+        portManager.writeAndDrain(commande + '/', () => {
         });
         return;
     }
@@ -566,7 +478,7 @@ function updateThermostatPlan(id) {
             rawData += chunk;
             var plans = objToArray(JSON.parse(rawData));
             var com = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/');
-            writeAndDrain(com + '/', () => {
+            portManager.writeAndDrain(com + '/', () => {
             });
 
             setTimeout(() => {
@@ -584,7 +496,7 @@ function updateThermostatPlan(id) {
                             plan.jour, plan.modeid, plan.defaultModeid,
                             h1Start, h1Stop, h2Start, h2Stop
                         ].join('/');
-                        writeAndDrain(commande + '/', () => {
+                        portManager.writeAndDrain(commande + '/', () => {
                         });
 
                         if (parseInt(plan.jour) < 7) {
@@ -593,7 +505,7 @@ function updateThermostatPlan(id) {
 
                         setTimeout(() => {
                             commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
-                            writeAndDrain(commande + '/', () => {
+                            portManager.writeAndDrain(commande + '/', () => {
                                 logger.log("savePlan " + plan.jour);
                                 plan.jour = 0;
                             });
@@ -605,10 +517,4 @@ function updateThermostatPlan(id) {
             }, 500);
         });
     });
-}
-
-function writeAndDrain(data, callback) {
-    port.write(data, () => {
-    });
-    port.drain(callback);
 }
