@@ -80,33 +80,33 @@ io.sockets.on('connection', socket => {
         launchScenario(scenario, socket);
     }).on("stopScenario", scenario => {
         stopScenario(scenario);
-    }).on("watchScenario", function (scenario) {
+    }).on("watchScenario", scenario => {
         watchScenarioRemainingTime(scenario);
-    }).on("updateTherCons", function (thermostat) {
+    }).on("updateTherCons", thermostat => {
         updateThermostat(thermostat, socket, "cons");
-    }).on("updateTherDelta", function (thermostat) {
+    }).on("updateTherDelta", thermostat => {
         updateThermostat(thermostat, socket, "delta");
-    }).on("updateTherTempext", function (thermostat) {
+    }).on("updateTherTempext", thermostat => {
         updateThermostat(thermostat, socket, "temp");
-    }).on("updateTherInterne", function (thermostat) {
+    }).on("updateTherInterne", thermostat => {
         updateThermostat(thermostat, socket, "int");
-    }).on("updateTherMode", function (id) {
+    }).on("updateTherMode", id => {
         updateThermostatMode(id);
-    }).on("syncTherModes", function (id) {
+    }).on("syncTherModes", id => {
         syncThermostatModes();
-    }).on("updateTherPlan", function (id) {
+    }).on("updateTherPlan", id => {
         updateThermostatPlan(id);
-    }).on("refreshTher", function () {
+    }).on("refreshTher", () => {
         refreshThermostat();
-    }).on("updateTherClock", function (id) {
+    }).on("updateTherClock", id => {
         updateThermostatRtc();
-    }).on("getTherClock", function (id) {
+    }).on("getTherClock", id => {
         getThermostatClock();
-    }).on("updateAquaClock", function (id) {
+    }).on("updateAquaClock", id => {
         updateAquariumClock();
-    }).on("getAquaClock", function (id) {
+    }).on("getAquaClock", id => {
         getAquariumClock();
-    }).on('disconnect', function () {
+    }).on('disconnect', () => {
         var clientIp = socket.request.connection.remoteAddress;
         logger.log(clientIp + ' Disconnected');
     });
@@ -471,7 +471,7 @@ function persistThermostat(dataObj) {
         res.on('data', (chunk) => {
             rawData += chunk;
             thermostats = JSON.parse(rawData);
-            thermostats.forEach(function (thermostat, index) {
+            thermostats.forEach((thermostat, index) => {
                 if (dataObj.radioid.includes("thermostat")) {
                     thermostat.consigne = dataObj.valeur1;
                     thermostat.delta = dataObj.valeur2;
@@ -523,7 +523,7 @@ function syncThermostatModes() {
             var modes = objToArray(JSON.parse(rawData));
             var iter = 0;
 
-            modes.forEach(function (mode) {
+            modes.forEach(mode => {
                 setTimeout(() => {
                     var commande = ["nrf24", "node", "2Nodw", "ther", "put", "mode", mode.id, mode.consigne, mode.delta].join('/');
                     writeAndDrain(commande + '/', () => {
@@ -579,7 +579,7 @@ function updateThermostatPlan(id) {
             });
 
             setTimeout(() => {
-                plans.forEach(function (plan) {
+                plans.forEach(plan => {
                     setTimeout(() => {
                         h1Start = plan.heure1Start;
                         h1Stop = plan.heure1Stop;
