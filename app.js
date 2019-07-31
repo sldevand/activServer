@@ -1,12 +1,16 @@
-var http = require('http');
-var config = require('./config/config');
-var SerialPort = require('serialport');
-var CronJob = require('cron').CronJob;
-var logger = require('./logger/logger');
-var df = require('./dateFactory/dateFactory');
-var APIRequest = require('./httpRequest/apiRequest');
-var APIFetchRequest = require('./httpRequest/apiFetchRequest');
-var Timeout = require('await-timeout');
+const http = require('http');
+const config = require('./config/config');
+const SerialPort = require('serialport');
+const CronJob = require('cron').CronJob;
+const logger = require('./logger/logger');
+const df = require('./dateFactory/dateFactory');
+const APIRequest = require('./httpRequest/apiRequest');
+const APIFetchRequest = require('./httpRequest/apiFetchRequest');
+const Timeout = require('await-timeout');
+const SensorsManager = require('./sensors/sensorsManager');
+const ActuatorsManager = require('./actuators/actuatorsManager');
+const ThermostatManager = require('./thermostat/thermostatManager');
+const PortManager = require('./port/portManager');
 
 //SERVER INIT
 var server = http.createServer();
@@ -34,6 +38,9 @@ var capteurs = [];
 var thermostats = [];
 var timers = [];
 const ACTIONS_DELAY = 300;
+const sensorsManager = new SensorsManager(apiFetchReq, logger, io, df);
+const actuatorsManager = new ActuatorsManager(apiFetchReq, logger, io, df);
+const thermostatManager = new ThermostatManager(apiFetchReq, logger, io, df);
 
 //SOCKETIO LISTENERS
 io.sockets.on('connection', socket => {
@@ -41,28 +48,9 @@ io.sockets.on('connection', socket => {
     var clientIp = socket.request.connection.remoteAddress;
     logger.log('New connection from ' + clientIp);
 
-    apiReq.get('actionneurs', (res) => {
-        res.setEncoding('utf8');
-        var rawData = '';
-        res.on('data', (chunk) => {
-            rawData += chunk;
-            actionneurs = JSON.parse(rawData);
-        });
-    }).get('mesures/get-sensors', (res) => {
-        res.setEncoding('utf8');
-        var rawData = '';
-        res.on('data', (chunk) => {
-            rawData += chunk;
-            capteurs = JSON.parse(rawData);
-        });
-    }).get('thermostat', (res) => {
-        res.setEncoding('utf8');
-        var rawData = '';
-        res.on('data', (chunk) => {
-            rawData += chunk;
-            thermostats = JSON.parse(rawData);
-        });
-    });
+    thermostatManager.get();
+    actuatorsManager.get();
+    sensorsManager.get();
 
     socket.on('messageAll', message => {
         logger.log('messageAll From : ' + clientIp + ' ' + message);
@@ -111,13 +99,16 @@ io.sockets.on('connection', socket => {
         logger.log(clientIp + ' Disconnected');
     });
 });
-server.listen(5901);
+server.listen(config.port);
 
 var port = new SerialPort(config.portPath, {
     baudRate: 9600
 });
 
+const portManager = new PortManager(port);
+
 port.on('open', () => {
+    actuatorsManager.setPortManager(portManager);
     logger.log("port " + config.portPath + " opened");
 }).on('error', err => {
     logger.log(err.message);
@@ -139,7 +130,7 @@ port.on('open', () => {
         'valeur5': dataTab[5]
     };
     if (dataObj.radioid.includes("sensor")) {
-        persistSensor(dataTab, dataObj);
+        sensorsManager.persist(dataTab, dataObj);
     }
     if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
         persistThermostat(dataObj);
@@ -196,7 +187,7 @@ function updateDimmer(dimmerObject, socket, fromPersist) {
         dimmerObject.radioid,
         dimmerObject.etat
     ].join('/') + '/';
-    writeAndDrain(commande + '/', () => {
+    portManager.writeAndDrain(commande + '/', () => {
         if (!fromPersist) {
             socket.broadcast.emit('dimmer', dimmerObject);
             return;
@@ -386,7 +377,7 @@ async function updateAction(action, socket, timer) {
 
     return timer.set(action.timeout)
         .then(() => {
-            updateActionneur(actionneur, socket);
+            actuatorsManager.update(actionneur, socket);
         })
         .catch(err => {
             logger.log(err)
@@ -613,45 +604,6 @@ function updateThermostatPlan(id) {
                 });
             }, 500);
         });
-    });
-}
-
-function persistSensor(dataTab, dataObj) {
-    var uri = 'mesures/add-' + dataObj.radioid + '-' + dataObj.valeur1;
-    if (dataTab.length > 2) uri += '-' + dataObj.valeur2;
-    apiFetchReq.get(uri)
-        .then((data) => {
-            emitSensors(dataObj);
-        })
-        .catch(err => logger.log(err));
-}
-
-function emitSensors(dataObj) {
-    capteurs.forEach((sensor) => {
-        if (sensor.radioid !== dataObj.radioid) {
-            return;
-        }
-        sensor.valeur1 = dataObj.valeur1;
-        sensor.valeur2 = dataObj.valeur2;
-        if (undefined === sensor.valeur2) {
-            sensor.valeur2 = "";
-        }
-        sensor.releve = df.nowDatetime();
-        sensor.actif = 1;
-        let eventName = "";
-        if (dataObj.radioid.includes("ctn10") ||
-            dataObj.radioid.includes("dht11")) {
-            eventName = 'thermo';
-        } else if (dataObj.radioid.includes("tinfo")) {
-            eventName = 'teleinfo';
-        } else if (dataObj.radioid.includes("therm")) {
-            eventName = 'chaudiere';
-        }
-
-        if (eventName === "") {
-            return;
-        }
-        io.sockets.emit(eventName, sensor);
     });
 }
 
