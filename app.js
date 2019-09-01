@@ -41,7 +41,6 @@ const ACTIONS_DELAY = 300;
 const sensorsManager = new SensorsManager(apiFetchReq, logger, io, df);
 const actuatorsManager = new ActuatorsManager(apiFetchReq, logger, io, df);
 const thermostatManager = new ThermostatManager(apiFetchReq, logger, io, df);
-
 //SOCKETIO LISTENERS
 io.sockets.on('connection', socket => {
 
@@ -60,6 +59,8 @@ io.sockets.on('connection', socket => {
         });
     }).on('updateDimmer', dimmerObject => {
         actuatorsManager.updateDimmer(dimmerObject, socket, false);
+    }).on('serialportReset', () => {
+        portManager.reset();
     }).on('updateDimmerPersist', dimmerObject => {
         actuatorsManager.updateDimmerPersist(dimmerObject, socket);
     }).on('updateInter', interObject => {
@@ -102,10 +103,12 @@ io.sockets.on('connection', socket => {
 server.listen(config.port);
 
 var port = new SerialPort(config.portPath, {
-    baudRate: 9600
+    baudRate: 9600,
+    autoOpen: false
 });
 
-const portManager = new PortManager(port);
+const portManager = new PortManager(port, logger, io, df);
+portManager.open();
 
 port.on('open', () => {
     actuatorsManager.setPortManager(portManager);
