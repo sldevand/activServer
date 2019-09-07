@@ -8,11 +8,9 @@ address=<API Relative URI>
 [WINDOWS]
 portPath=com3;
 rootPath=C:\\wamp64\\www\\;
-logPath=activServer\\log.txt;
 sep=\\;
 
 [LINUX]
 portPath=/dev/ttyUSB0;
 rootPath=/home/pi/;
-logPath=activServer/log.txt;
 sep=/;
