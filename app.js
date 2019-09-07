@@ -2,7 +2,7 @@ const http = require('http');
 const config = require('./config/config');
 const SerialPort = require('serialport');
 const CronJob = require('cron').CronJob;
-const logger = require('./logger/logger');
+const Logger = require('./logger/logger-api');
 const df = require('./dateFactory/dateFactory');
 const APIRequest = require('./httpRequest/apiRequest');
 const APIFetchRequest = require('./httpRequest/apiFetchRequest');
@@ -17,6 +17,7 @@ var server = http.createServer();
 var apiReq = new APIRequest(http, config.ip, '/' + config.apiUri + '/');
 var apiFetchReq = new APIFetchRequest('http://' + config.ip + '/' + config.apiUri);
 var io = require('socket.io').listen(server);
+var logger = new Logger(apiFetchReq, df);
 
 //CRONJOBS
 var logRefreshCronJob = new CronJob('0 */30 * * * *', () => {
