@@ -28,10 +28,6 @@ var rtcUpdateThermostatCronJob = new CronJob('0 5 0 * * *', () => {
     updateThermostatRtc();
 }, null, true, 'Europe/Paris');
 
-var rtcUpdateAquariumCronJob = new CronJob('0 6 0 * * *', () => {
-    updateAquariumClock();
-}, null, true, 'Europe/Paris');
-
 resetScenariosStatuses();
 
 //GLOBAL VARS
@@ -92,10 +88,6 @@ io.sockets.on('connection', socket => {
         updateThermostatRtc();
     }).on("getTherClock", id => {
         getThermostatClock();
-    }).on("updateAquaClock", id => {
-        updateAquariumClock();
-    }).on("getAquaClock", id => {
-        getAquariumClock();
     }).on('disconnect', () => {
         var clientIp = socket.request.connection.remoteAddress;
         logger.log(clientIp + ' Disconnected');
@@ -342,25 +334,6 @@ function updateThermostatRtc() {
 
 function getThermostatClock() {
     var commande = ["nrf24", "node", "2Nodw", "ther", "get", "rtc"].join('/');
-    portManager.writeAndDrain(commande + '/', () => {
-    });
-}
-
-function updateAquariumClock() {
-    var date = new Date();
-    var d = date.getDate();
-    var m = date.getMonth() + 1;
-    var y = date.getFullYear();
-    var h = date.getHours();
-    var i = date.getMinutes();
-    var s = date.getSeconds();
-    var commande = ["nrf24", "node", "3Nodw", "aqua", "put", "rtc", y, m, d, h, i, s].join('/');
-    portManager.writeAndDrain(commande + '/', () => {
-    });
-}
-
-function getAquariumClock() {
-    var commande = ["nrf24", "node", "3Nodw", "aqua", "get", "rtc"].join('/');
     portManager.writeAndDrain(commande + '/', () => {
     });
 }
