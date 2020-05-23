@@ -13,6 +13,7 @@ module.exports = function ApiFetchRequest(p_basePath) {
                     data
                 );
             }
+
             return fetch(url,
                 {
                     method: method,
