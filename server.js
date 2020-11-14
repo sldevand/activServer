@@ -144,8 +144,7 @@ port.on('open', () => {
                 io.sockets.emit("thermodesave", "OK");
             }
             if (dataObj.valeur2.includes("pow")) {
-                io.sockets.emit("therpowget", dataTab[2]);
-                console.log("therpowget", dataTab[2]);
+                io.sockets.emit("therpowget", dataObj.valeur3);
             }
         }
     }
