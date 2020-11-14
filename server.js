@@ -88,6 +88,10 @@ io.sockets.on('connection', socket => {
         updateThermostatRtc();
     }).on("getTherClock", id => {
         getThermostatClock();
+    }).on("setTherPwr", status => {
+        setThermostatPower(status)
+    }).on("getTherPwr", () => {
+        getThermostatPower();
     }).on('disconnect', () => {
         var clientIp = socket.request.connection.remoteAddress;
         logger.log(clientIp + ' Disconnected');
@@ -138,6 +142,10 @@ port.on('open', () => {
             }
             if (dataObj.valeur2.includes("smok")) {
                 io.sockets.emit("thermodesave", "OK");
+            }
+            if (dataObj.valeur2.includes("pow")) {
+                io.sockets.emit("therpowget", dataTab[2]);
+                console.log("therpowget", dataTab[2]);
             }
         }
     }
@@ -340,6 +348,18 @@ function getThermostatClock() {
 
 function refreshThermostat() {
     var commande = ["nrf24", "node", "2Nodw", "ther", "get", "info"].join('/');
+    portManager.writeAndDrain(commande + '/', () => {
+    });
+}
+
+function setThermostatPower(status) {
+    var commande = ["nrf24", "node", "2Nodw", "ther", "set", "pwr", status].join('/');
+    portManager.writeAndDrain(commande + '/', () => {
+    });
+}
+
+function getThermostatPower() {
+    var commande = ["nrf24", "node", "2Nodw", "ther", "get", "pwr"].join('/');
     portManager.writeAndDrain(commande + '/', () => {
     });
 }
