@@ -144,7 +144,7 @@ port.on('open', () => {
                 io.sockets.emit("thermodesave", "OK");
             }
             if (dataObj.valeur2.includes("pow")) {
-                io.sockets.emit("therpowget", dataObj.valeur3);
+                persistThermostat(dataObj);
             }
         }
     }
@@ -383,6 +383,14 @@ function persistThermostat(dataObj) {
                     thermostat.modeid = dataObj.valeur1;
                     thermostat.planning = dataObj.valeur2;
                     io.sockets.emit('thersel', thermostat);
+                }
+
+                if (dataObj.radioid.includes("message")
+                    && dataObj.valeur1.includes("tht")
+                    && dataObj.valeur2.includes("pow")
+                ) {
+                    thermostat.power = dataObj.valeur3
+                    io.sockets.emit("therpowget", dataObj.valeur3);
                 }
                 delete thermostat.sensor;
                 delete thermostat.mode;
