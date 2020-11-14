@@ -1,0 +1,11 @@
+[Unit]
+Description=ActivServer node js server for Activhome
+After=network-online.target
+
+[Service]
+Restart=on-failure
+WorkingDirectory=/home/pi/activServer/
+ExecStart=/usr/bin/node /home/pi/activServer/server.js
+
+[Install]
+WantedBy=multi-user.target
