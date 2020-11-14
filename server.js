@@ -389,7 +389,7 @@ function persistThermostat(dataObj) {
                     && dataObj.valeur1.includes("tht")
                     && dataObj.valeur2.includes("pow")
                 ) {
-                    thermostat.power = dataObj.valeur3
+                    thermostat.pwr = dataObj.valeur3
                     io.sockets.emit("therpowget", dataObj.valeur3);
                 }
                 delete thermostat.sensor;
