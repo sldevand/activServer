@@ -132,6 +132,9 @@ port.on('open', () => {
     if (dataObj.radioid.includes("sensor")) {
         sensorsManager.persist(dataTab, dataObj);
     }
+    if (dataObj.radioid.includes("chacon-dio")) {
+        sensorsManager.persistChacon(dataObj);
+    }
     if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
         persistThermostat(dataObj);
     }
@@ -390,7 +393,11 @@ function persistThermostat(dataObj) {
                     && dataObj.valeur2.includes("pow")
                 ) {
                     thermostat.pwr = dataObj.valeur3
+<<<<<<< HEAD
                     io.sockets.emit("therpowget", dataObj.valeur3);
+=======
+                    io.sockets.emit("therpowget", thermostat);
+>>>>>>> d67b18058fc41d7a87a059c7f2b693d690636326
                 }
                 delete thermostat.sensor;
                 delete thermostat.mode;
