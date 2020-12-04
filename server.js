@@ -132,6 +132,9 @@ port.on('open', () => {
     if (dataObj.radioid.includes("sensor")) {
         sensorsManager.persist(dataTab, dataObj);
     }
+    if (dataObj.radioid.includes("chacon-dio")) {
+        sensorsManager.persistChacon(dataObj);
+    }
     if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
         persistThermostat(dataObj);
     }

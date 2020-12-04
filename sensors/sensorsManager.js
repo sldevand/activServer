@@ -18,6 +18,15 @@ class SensorsManager extends Manager{
             });
     }
 
+    persistChacon(dataObj) {
+        var uri = 'mesures/addchacondio-' + dataObj.valeur1 + ' ' + dataObj.valeur2 + "-" + dataObj.valeur3;
+
+        return this.apiFetchReq.get(encodeURI(uri))
+            .then(data => {
+                this.emit(dataObj);
+            });
+    }
+
     emit(dataObj) {
         this.data.forEach((sensor) => {
             if (sensor.radioid !== dataObj.radioid) {
