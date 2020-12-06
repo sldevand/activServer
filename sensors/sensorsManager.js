@@ -24,6 +24,7 @@ class SensorsManager extends Manager{
         return this.apiFetchReq.get(encodeURI(uri))
             .then(data => {
                 this.emit(dataObj);
+                return data;
             });
     }
 
@@ -47,6 +48,8 @@ class SensorsManager extends Manager{
                 eventName = 'teleinfo';
             } else if (dataObj.radioid.includes("therm")) {
                 eventName = 'chaudiere';
+            } else if (dataObj.radioid.includes("chacon-dio")) {
+                eventName = 'chacon-dio';
             }
 
             if (eventName === "") {

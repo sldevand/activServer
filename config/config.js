@@ -21,7 +21,8 @@ var config = {
     sep: iniFile[env].sep,
     ip: iniFile['NETWORK'].ip,
     port: iniFile['NETWORK'].port,
-    apiUri:iniFile['API'].address
+    apiUri:iniFile['API'].address,
+    timerBeforeExecute:iniFile['DOORTHERMOSTAT'].timerBeforeExecute,
 };
 
 module.exports = config;
