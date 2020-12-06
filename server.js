@@ -11,6 +11,7 @@ const SensorsManager = require('./sensors/sensorsManager');
 const ActuatorsManager = require('./actuators/actuatorsManager');
 const ThermostatManager = require('./thermostat/thermostatManager');
 const PortManager = require('./port/portManager');
+const DoorThermostat = require('./plugger/door-thermostat');
 
 //SERVER INIT
 var server = http.createServer();
@@ -38,6 +39,7 @@ const ACTIONS_DELAY = 300;
 const sensorsManager = new SensorsManager(apiFetchReq, logger, io, df);
 const actuatorsManager = new ActuatorsManager(apiFetchReq, logger, io, df);
 const thermostatManager = new ThermostatManager(apiFetchReq, logger, io, df);
+const doorThermostat = new DoorThermostat();
 //SOCKETIO LISTENERS
 io.sockets.on('connection', socket => {
 
@@ -133,7 +135,13 @@ port.on('open', () => {
         sensorsManager.persist(dataTab, dataObj);
     }
     if (dataObj.radioid.includes("chacon-dio")) {
-        sensorsManager.persistChacon(dataObj);
+        sensorsManager.persistChacon(dataObj)
+            .then(data => {
+                data.timerBeforeExecute = config.timerBeforeExecute;
+                doorThermostat.execute(data, () => {
+                    setThermostatPower(0)
+                });
+            });
     }
     if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
         persistThermostat(dataObj);
