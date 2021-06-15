@@ -495,6 +495,9 @@ function updateThermostatPlan(id) {
         var rawData = '';
         res.on('data', (chunk) => {
             rawData += chunk;
+        });
+
+        res.on('end' , () => {
             var plans = objToArray(JSON.parse(rawData));
             var com = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/');
             portManager.writeAndDrain(com + '/', () => {
