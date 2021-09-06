@@ -229,6 +229,9 @@ function launchScenario(pScenario, socket) {
 function stopScenario(scenario) {
     changeScenarioStatus(scenario, 'stop')
         .then(scenario => {
+            if (scenario.hasOwnProperty('error')) {
+                return Promise.reject(scenario.error);
+            }
             logScenarioChanges(scenario);
             for (let key in timers) {
                 if (timers[key].scenario.id !== scenario.id) {
@@ -241,8 +244,20 @@ function stopScenario(scenario) {
             }
         })
         .catch((err) => {
+            clearTimers();
             logger.log(err);
         });
+}
+
+function clearTimers() 
+{
+    for (let key in timers) {
+        io.sockets.emit("scenarioFeedback", timers[key].scenario);
+        logger.log('Scenario ' + timers[key].scenario.nom + ' timer is cleared');
+        clearTimeout(timers[key].watcher);
+        timers.splice(key, 1);
+    }
+    resetScenariosStatuses();
 }
 
 function watchScenarioRemainingTime(scenario) {
