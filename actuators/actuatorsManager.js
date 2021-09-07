@@ -90,7 +90,6 @@ class ActuatorsManager extends Manager {
             if (interObject.etat === 0) {
                 interObject.etat = "0"
             }
-            console.log(interObject);
             this.post(interObject);
         });
     }
