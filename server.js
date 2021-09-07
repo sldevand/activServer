@@ -175,6 +175,9 @@ port.on('open', () => {
 function resetScenariosStatuses() {
     apiFetchReq.get('scenarios/reset')
         .then((json) => {
+            if (json.hasOwnProperty('error')) {
+                return Promise.reject(json.error)
+            }
             logger.log(json.success);
         })
         .catch(err => {
@@ -237,9 +240,7 @@ function stopScenario(scenario) {
                 if (timers[key].scenario.id !== scenario.id) {
                     continue;
                 }
-                logger.log('Scenario ' + timers[key].scenario.nom + ' timer is cleared');
-                clearTimeout(timers[key].watcher);
-                timers.splice(key, 1);
+                clearTimer(key);
                 return;
             }
         })
@@ -253,11 +254,16 @@ function clearTimers()
 {
     for (let key in timers) {
         io.sockets.emit("scenarioFeedback", timers[key].scenario);
-        logger.log('Scenario ' + timers[key].scenario.nom + ' timer is cleared');
-        clearTimeout(timers[key].watcher);
-        timers.splice(key, 1);
+        clearTimer(key);
     }
     resetScenariosStatuses();
+}
+
+function clearTimer(key) {
+    timers[key].timer.clear();
+    clearTimeout(timers[key].watcher);
+    logger.log('Scenario ' + timers[key].scenario.nom + ' timer is cleared');
+    timers.splice(key, 1);
 }
 
 function watchScenarioRemainingTime(scenario) {
@@ -293,7 +299,6 @@ async function processSequenceItems(scenario, socket, timer) {
     for (let item of items) {
         await updateAction(item, socket, timer);
         timer.clear();
-
     }
     return await scenario;
 }

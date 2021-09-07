@@ -18,7 +18,7 @@ class LoggerApi {
             (res) => {
                 console.log(this.df.stringifiedHour() + ' ' + res.content);
             }
-        );
+        ).catch( err => console.error("Error in log data :" + err));
     }
 }
 

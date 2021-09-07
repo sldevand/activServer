@@ -10,7 +10,7 @@ class ActuatorsManager extends Manager {
             });
     }
 
-    post(data){
+    post(data) {
         return this.apiFetchReq.send('POST', 'actionneurs/update', data);
     }
 
@@ -34,8 +34,8 @@ class ActuatorsManager extends Manager {
         }
 
         let command = [dimmerObject.module,
-            dimmerObject.radioid,
-            dimmerObject.etat
+        dimmerObject.radioid,
+        dimmerObject.etat
         ].join('/') + '/';
         this.portManager.writeAndDrain(command + '/', () => {
             if (!fromPersist) {
@@ -58,8 +58,8 @@ class ActuatorsManager extends Manager {
 
         this.updateDimmer(dimmerObject, socket, true);
         this.post(dimmerObject).then(res => {
-            if(res && res.error){
-               return this.logger.log(res.error);
+            if (res && res.error) {
+                return this.logger.log(res.error);
             }
 
             this.logger.log(dimmerObject.nom + ' ' + dimmerObject.etat);
@@ -87,6 +87,10 @@ class ActuatorsManager extends Manager {
             this.logger.log("update" + interObject.type + " " + interObject.nom + ' ' + interObject.etat);
             this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
             this.io.sockets.emit('inter', interObject);
+            if (interObject.etat === 0) {
+                interObject.etat = "0"
+            }
+            console.log(interObject);
             this.post(interObject);
         });
     }
@@ -95,16 +99,16 @@ class ActuatorsManager extends Manager {
         switch (interObject.type) {
             case "relay":
                 return [interObject.module,
-                    interObject.protocole,
-                    interObject.adresse,
-                    interObject.radioid,
-                    interObject.etat
+                interObject.protocole,
+                interObject.adresse,
+                interObject.radioid,
+                interObject.etat
                 ].join('/');
             case "aqua":
                 return [interObject.module,
-                    interObject.protocole,
-                    interObject.adresse,
-                    interObject.type,
+                interObject.protocole,
+                interObject.adresse,
+                interObject.type,
                     "set", "leds"
                 ].join('/');
             default:
