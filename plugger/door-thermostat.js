@@ -5,7 +5,10 @@ class DoorThermostat {
     }
 
     execute(data, callback) {
-        if (data.radioid !== 'sensor43cdoorid1') {
+
+        if (data.radioid !== 'sensor43cdoorid1'
+            || data.timerBeforeExecute == 0
+        ) {
             return data;
         }
 
