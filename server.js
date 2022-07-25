@@ -1,6 +1,6 @@
 const http = require('http');
 const config = require('./config/config');
-const SerialPort = require('serialport');
+const { SerialPort } = require('serialport')
 const CronJob = require('cron').CronJob;
 const Logger = require('./logger/logger-api');
 const df = require('./dateFactory/dateFactory');
@@ -101,7 +101,8 @@ io.sockets.on('connection', socket => {
 });
 server.listen(config.port);
 
-var port = new SerialPort(config.portPath, {
+var port = new SerialPort({
+    path: config.portPath,
     baudRate: 9600,
     autoOpen: false
 });
@@ -250,8 +251,7 @@ function stopScenario(scenario) {
         });
 }
 
-function clearTimers() 
-{
+function clearTimers() {
     for (let key in timers) {
         io.sockets.emit("scenarioFeedback", timers[key].scenario);
         clearTimer(key);
@@ -513,7 +513,7 @@ function updateThermostatPlan(id) {
             rawData += chunk;
         });
 
-        res.on('end' , () => {
+        res.on('end', () => {
             var plans = objToArray(JSON.parse(rawData));
             var com = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/');
             portManager.writeAndDrain(com + '/', () => {
