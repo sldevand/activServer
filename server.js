@@ -401,6 +401,8 @@ function persistThermostat(dataObj) {
         var rawData = '';
         res.on('data', (chunk) => {
             rawData += chunk;
+        });
+        res.on('end', () => {
             thermostats = JSON.parse(rawData);
             thermostats.forEach((thermostat, index) => {
                 if (dataObj.radioid.includes("thermostat")) {
@@ -443,6 +445,8 @@ function updateThermostatMode(id) {
         var rawData = '';
         res.on('data', (chunk) => {
             rawData += chunk;
+        });
+        res.on('end', () => {
             var mode = JSON.parse(rawData);
             var commande = ["nrf24", "node", "2Nodw", "ther", "sel", "mode", mode.id].join('/');
             portManager.writeAndDrain(commande + '/', () => {
@@ -458,6 +462,9 @@ function syncThermostatModes() {
         var rawData = '';
         res.on('data', (chunk) => {
             rawData += chunk;
+        });
+
+        res.on('end', () => {
             var timeoutDuration = 300;
             var modes = objToArray(JSON.parse(rawData));
             var iter = 0;
@@ -500,7 +507,7 @@ function updateThermostatPlan(id) {
         return;
     }
 
-    if (id === 0) {
+    if (id == 0) {
         var commande = ["nrf24", "node", "2Nodw", "ther", "set", "plan", id].join('/');
         portManager.writeAndDrain(commande + '/', () => {
         });
@@ -520,6 +527,7 @@ function updateThermostatPlan(id) {
             portManager.writeAndDrain(setPlanCommand, () => {
             });
 
+            const TIME_BETWEEN_PLANS = 250;
             setTimeout(() => {
                 plans.forEach(plan => {
                     setTimeout(() => {
@@ -533,18 +541,18 @@ function updateThermostatPlan(id) {
                         if (parseInt(plan.jour) < 7) {
                             return;
                         }
-
-                        setTimeout(() => {
-                            let savePlanCommand = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/') + '/';
-                            portManager.writeAndDrain(savePlanCommand, () => {
-                                logger.log("savePlan " + plan.jour);
-                                plan.jour = 0;
-                            });
-                        }, 200);
-
-                    }, time * 120);
+                    }, time * TIME_BETWEEN_PLANS);
                     time++;
                 });
+
+                setTimeout(() => {
+                    let savePlanCommand = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/') + '/';
+                    console.log(savePlanCommand)
+                    portManager.writeAndDrain(savePlanCommand, () => {
+                        logger.log("savePlan ok");
+                    });
+                }, 10*TIME_BETWEEN_PLANS);
+
             }, 500);
         });
     });
