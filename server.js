@@ -40,6 +40,7 @@ const sensorsManager = new SensorsManager(apiFetchReq, logger, io, df);
 const actuatorsManager = new ActuatorsManager(apiFetchReq, logger, io, df);
 const thermostatManager = new ThermostatManager(apiFetchReq, logger, io, df);
 const doorThermostat = new DoorThermostat();
+
 //SOCKETIO LISTENERS
 io.sockets.on('connection', socket => {
 
@@ -515,26 +516,18 @@ function updateThermostatPlan(id) {
 
         res.on('end', () => {
             var plans = objToArray(JSON.parse(rawData));
-            var com = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/');
-            portManager.writeAndDrain(com + '/', () => {
+            let setPlanCommand = ["nrf24", "node", "2Nodw", "ther", "set", "plan", parseInt(id)].join('/') + '/';
+            portManager.writeAndDrain(setPlanCommand, () => {
             });
 
             setTimeout(() => {
                 plans.forEach(plan => {
                     setTimeout(() => {
-                        h1Start = plan.heure1Start;
-                        h1Stop = plan.heure1Stop;
-                        h2Start = plan.heure2Start;
-                        h2Stop = plan.heure2Stop;
-                        if (plan.heure1Start === null || plan.heure1Start === "") h1Start = "XX:XX";
-                        if (plan.heure1Stop === null || plan.heure1Stop === "") h1Stop = "XX:XX";
-                        if (plan.heure2Start === null || plan.heure2Start === "") h2Start = "XX:XX";
-                        if (plan.heure2Stop === null || plan.heure2Stop === "") h2Stop = "XX:XX";
-                        var commande = ["nrf24", "node", "2Nodw", "ther", "put", "plan",
-                            plan.jour, plan.modeid, plan.defaultModeid,
-                            h1Start, h1Stop, h2Start, h2Stop
-                        ].join('/');
-                        portManager.writeAndDrain(commande + '/', () => {
+                        let putPlanCommandArray = ["nrf24", "node", "2Nodw", "ther", "put", "plan", plan.jour];
+                        plan.timetable = plan.timetable.replace(/-/g,'');
+                        let timetable = JSON.parse(plan.timetable);
+                        let putPlanCommand = putPlanCommandArray.concat(timetable).join('/') + '/';
+                        portManager.writeAndDrain(putPlanCommand, () => {
                         });
 
                         if (parseInt(plan.jour) < 7) {
@@ -542,8 +535,8 @@ function updateThermostatPlan(id) {
                         }
 
                         setTimeout(() => {
-                            commande = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/');
-                            portManager.writeAndDrain(commande + '/', () => {
+                            let savePlanCommand = ["nrf24", "node", "2Nodw", "ther", "save", "plan"].join('/') + '/';
+                            portManager.writeAndDrain(savePlanCommand, () => {
                                 logger.log("savePlan " + plan.jour);
                                 plan.jour = 0;
                             });
