@@ -452,6 +452,11 @@ function updateThermostatMode(id) {
             var commande = ["nrf24", "node", "2Nodw", "ther", "sel", "mode", mode.id].join('/');
             portManager.writeAndDrain(commande + '/', () => {
             });
+            setTimeout(() => {
+                let saveModecommand = ["nrf24", "node", "2Nodw", "ther", "save", "mode"].join('/');
+                portManager.writeAndDrain(saveModecommand + '/', () => {
+                });
+            }, 2000);
         });
     });
 }
