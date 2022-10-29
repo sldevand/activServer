@@ -438,6 +438,7 @@ function updateThermostatMode(id) {
 
     if (id === null || id <= 0 || id >= 254) {
         logger.log("given value is null or out of bounds");
+        return;
     }
 
     apiReq.get("thermostat/mode/" + parseInt(id, 10), (res) => {
@@ -527,7 +528,7 @@ function updateThermostatPlan(id) {
             portManager.writeAndDrain(setPlanCommand, () => {
             });
 
-            const TIME_BETWEEN_PLANS = 250;
+            const TIME_BETWEEN_PLANS = 400;
             setTimeout(() => {
                 plans.forEach(plan => {
                     setTimeout(() => {
@@ -535,6 +536,7 @@ function updateThermostatPlan(id) {
                         plan.timetable = plan.timetable.replace(/-/g,'');
                         let timetable = JSON.parse(plan.timetable);
                         let putPlanCommand = putPlanCommandArray.concat(timetable).join('/') + '/';
+
                         portManager.writeAndDrain(putPlanCommand, () => {
                         });
 
