@@ -10,11 +10,13 @@ class PortManager {
         this.port.open();
     }
 
+    flush() {
+       this.port.flush();
+    }
+
     writeAndDrain(data, callback) {
-        this.port.write(data, () => {
-            this.port.drain(callback);
-        });
-    
+        this.port.write(data);
+        this.port.drain(callback);
     }
 
     reset() {

@@ -114,13 +114,18 @@ portManager.open();
 port.on('open', () => {
     actuatorsManager.setPortManager(portManager);
     logger.log("port " + config.portPath + " opened");
+    portManager.flush();
 }).on('error', err => {
     logger.log(err.message);
 }).on('close', () => {
     logger.log("port " + config.portPath + " closed");
 }).on('data', data => {
     var datastr = data.toString();
-    if (!datastr || /^\s*$/.test(datastr)) {
+
+    if (!datastr
+        || /^\s*$/.test(datastr)
+        || datastr.length > 255
+    ) {
         return;
     }
     datastr = datastr.replace(/[\n\r]+/g, '');
