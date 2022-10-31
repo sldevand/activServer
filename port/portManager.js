@@ -12,8 +12,9 @@ class PortManager {
 
     writeAndDrain(data, callback) {
         this.port.write(data, () => {
+            this.port.drain(callback);
         });
-        this.port.drain(callback);
+    
     }
 
     reset() {
