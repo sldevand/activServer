@@ -1,6 +1,10 @@
 const http = require('http');
 const config = require('./config/config');
-const { SerialPort } = require('serialport')
+require('dotenv').config();
+var { SerialPort } = require('serialport')
+if (process.env.NODE_ENV == 'development') {
+    SerialPort = require('virtual-serialport');
+}
 const CronJob = require('cron').CronJob;
 const Logger = require('./logger/logger-api');
 const df = require('./dateFactory/dateFactory');
@@ -114,6 +118,9 @@ portManager.open();
 port.on('open', () => {
     actuatorsManager.setPortManager(portManager);
     logger.log("port " + config.portPath + " opened");
+    if (process.env.NODE_ENV == "development") {
+        portManager.initVirtualMode();
+    }
     portManager.flush();
 }).on('error', err => {
     logger.log(err.message);
@@ -131,12 +138,12 @@ port.on('open', () => {
     datastr = datastr.replace(/[\n\r]+/g, '');
     var dataTab = datastr.split(" ");
     var dataObj = {
-        'radioid': dataTab[0],
-        'valeur1': dataTab[1],
-        'valeur2': dataTab[2],
-        'valeur3': dataTab[3],
-        'valeur4': dataTab[4],
-        'valeur5': dataTab[5]
+        radioid: dataTab[0],
+        valeur1: dataTab[1],
+        valeur2: dataTab[2],
+        valeur3: dataTab[3],
+        valeur4: dataTab[4],
+        valeur5: dataTab[5],
     };
     if (dataObj.radioid.includes("sensor")) {
         sensorsManager.persist(dataTab, dataObj);

@@ -7,11 +7,18 @@ class PortManager {
     }
 
     open() {
-        this.port.open();
+        if (this.port.isOpen) {
+            return;
+        }
+        this.port.open(function (err) {
+            if (err) {
+                return console.log("Error opening port: ", err.message);
+            }
+        });
     }
 
     flush() {
-       this.port.flush();
+        this.port.flush();
     }
 
     writeAndDrain(data, callback) {
@@ -20,12 +27,21 @@ class PortManager {
     }
 
     reset() {
-        let dataStr = 'Resetting serialPort...';
+        let dataStr = "Resetting serialPort...";
         this.logger.log(dataStr);
         this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + dataStr);
-        this.port.close(() => {
-            this.port.open();
+        this.port.close((err) => {
+            this.open();
         });
+    }
+
+    initVirtualMode() {
+        // this.port.off("dataToDevice", this.virtualWriteToComputer);
+        this.port.on("dataToDevice", (data) => {
+            return this.port.writeToComputer(data);
+        });
+
+        this.port.write("Virtual port activated");
     }
 }
 
