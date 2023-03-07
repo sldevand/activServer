@@ -11,9 +11,9 @@
     "node-fetch": "^2.6.1",
     "serialport": "^10.4.0",
     "socket.io": "^2.4.0",
-    "socket.io-client": "^2.0.4"
+    "socket.io-client": "^2.0.4",
+    "virtual-serialport": "^0.3.3"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
