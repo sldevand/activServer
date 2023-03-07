@@ -1,6 +1,6 @@
 {
   "name": "activhome",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "app.js",
   "dependencies": {
@@ -17,6 +17,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Sébastien Lorrain",
   "license": "ISC"
 }
