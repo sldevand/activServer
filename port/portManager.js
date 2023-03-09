@@ -8,13 +8,19 @@ class PortManager {
 
     open() {
         if (this.port.isOpen) {
+            this.afterOpen();
             return;
         }
         this.port.open(function (err) {
             if (err) {
                 return console.log("Error opening port: ", err.message);
             }
+            this.afterOpen();
         });
+    }
+
+    afterOpen() {
+        return;
     }
 
     flush() {
@@ -33,15 +39,6 @@ class PortManager {
         this.port.close((err) => {
             this.open();
         });
-    }
-
-    initVirtualMode() {
-        // this.port.off("dataToDevice", this.virtualWriteToComputer);
-        this.port.on("dataToDevice", (data) => {
-            return this.port.writeToComputer(data);
-        });
-
-        this.port.write("Virtual port activated");
     }
 }
 

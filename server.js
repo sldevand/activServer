@@ -14,7 +14,10 @@ const Timeout = require('await-timeout');
 const SensorsManager = require('./sensors/sensorsManager');
 const ActuatorsManager = require('./actuators/actuatorsManager');
 const ThermostatManager = require('./thermostat/thermostatManager');
-const PortManager = require('./port/portManager');
+let PortManager = require('./port/portManager');
+if (process.env.NODE_ENV == 'development') {
+    PortManager = require('./port/virtualPortManager');
+}
 const DoorThermostat = require('./plugger/door-thermostat');
 
 //SERVER INIT
@@ -118,9 +121,6 @@ portManager.open();
 port.on('open', () => {
     actuatorsManager.setPortManager(portManager);
     logger.log("port " + config.portPath + " opened");
-    if (process.env.NODE_ENV == "development") {
-        portManager.initVirtualMode();
-    }
     portManager.flush();
 }).on('error', err => {
     logger.log(err.message);
