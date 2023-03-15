@@ -42,7 +42,8 @@ class SensorsManager extends Manager{
             sensor.actif = 1;
             let eventName = "";
             if (dataObj.radioid.includes("ctn10") ||
-                dataObj.radioid.includes("dht11")) {
+                dataObj.radioid.includes("dht11") ||
+                dataObj.radioid.includes("dht22")) {
                 eventName = 'thermo';
             } else if (dataObj.radioid.includes("tinfo")) {
                 eventName = 'teleinfo';

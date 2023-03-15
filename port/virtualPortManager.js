@@ -33,8 +33,8 @@ class VirtualPortManager extends PortManager {
     }
 
     initVirtualSensors() {
-        setTimeout(() => this.sendSensors(), 500);
-        setInterval(() => this.sendSensors(), 20000);
+        setTimeout(() => this.sendSensors(), 1000);
+        setInterval(() => this.sendSensors(), process.env.VIRTUAL_SENSORS_TIMER || 20000);
     }
 
     sendSensors() {
