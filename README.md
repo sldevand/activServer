@@ -6,31 +6,34 @@ It manages connections between Arduino and websockets with [serialport](https://
 ## Prerequisites
 You must make, program and plug an Arduino in your RaspberryPi before starting this server.
 
-## Dependencies
-[Forever](https://www.npmjs.com/package/forever) : A simple CLI tool for ensuring that a given script runs continuously (i.e. forever).
-```
-npm install forever -g
-```
-
 ## Install
 ```
 npm install
 ```
 
-## Configure
-You can configure your server inside activServerLaucher file
-
-FOREVER="/usr/local/bin/forever" <-- Where forever is installed<br>
-BPATH="/home/pi/activServer/" <-- Your base Path<br>
-
 ## Serve
-
+Copy activServer.service into /etc/systemd/system
 ```
-sudo chmod +x activServerLauncher
-./activServerLauncher
+sudo cp activServer.service /etc/systemd/system
+```
+Activate
+```
+sudo systemctl enable activServer.service
+```
+Start
+```
+sudo systemctl start activServer.service
 ```
 
+Check status
+```
+sudo systemctl status activServer.service
+```
+
+Stop
+```
+sudo systemctl stop activServer.service
+```
 
 ## License 
 * see [LICENSE](https://github.com/sldevand/activServer/blob/master/LICENSE.md) file
-
