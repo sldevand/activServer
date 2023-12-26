@@ -1,8 +1,7 @@
 const http = require('http');
 const config = require('./config/config');
-require('dotenv').config();
 var { SerialPort } = require('serialport')
-if (process.env.NODE_ENV == 'development') {
+if (config.nodeEnv == 'development') {
     SerialPort = require('virtual-serialport');
 }
 const CronJob = require('cron').CronJob;
@@ -15,7 +14,7 @@ const SensorsManager = require('./sensors/sensorsManager');
 const ActuatorsManager = require('./actuators/actuatorsManager');
 const ThermostatManager = require('./thermostat/thermostatManager');
 let PortManager = require('./port/portManager');
-if (process.env.NODE_ENV == 'development') {
+if (config.nodeEnv == 'development') {
     PortManager = require('./port/virtualPortManager');
 }
 const DoorThermostat = require('./plugger/door-thermostat');
@@ -107,7 +106,7 @@ io.sockets.on('connection', socket => {
         logger.log(clientIp + ' Disconnected');
     });
 });
-server.listen(config.port);
+server.listen(config.port, config.ip);
 
 var port = new SerialPort({
     path: config.portPath,

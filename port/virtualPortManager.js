@@ -1,5 +1,6 @@
 const PortManager = require("./portManager");
 const df = require("./../dateFactory/dateFactory");
+const config = require("./../config/config");
 
 class VirtualPortManager extends PortManager {
     constructor(port, logger, io, df) {
@@ -34,7 +35,7 @@ class VirtualPortManager extends PortManager {
 
     initVirtualSensors() {
         setTimeout(() => this.sendSensors(), 1000);
-        setInterval(() => this.sendSensors(), process.env.VIRTUAL_SENSORS_TIMER || 20000);
+        setInterval(() => this.sendSensors(), config.timerBeforeExecute || 20000);
     }
 
     sendSensors() {
