@@ -4,8 +4,8 @@ After=network-online.target
 
 [Service]
 Restart=on-failure
-WorkingDirectory=/home/pi/activServer/
-ExecStart=/usr/bin/node /home/pi/activServer/server.js
+WorkingDirectory=/path/to/activServer/
+ExecStart=/path/to/node/ /path/to/activServer/server.js
 
 [Install]
 WantedBy=multi-user.target
