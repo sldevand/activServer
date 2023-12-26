@@ -49,5 +49,10 @@ Stop
 sudo systemctl stop activServer.service
 ```
 
+Log the activServer.service
+```
+journalctl -f -u activServer.service
+```
+
 ## License 
 * see [LICENSE](https://github.com/sldevand/activServer/blob/master/LICENSE.md) file
