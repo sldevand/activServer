@@ -12,14 +12,23 @@ npm install
 ```
 
 ## Serve
+Copy activServer.service.dist to activServer.service
+```
+sudo cp activServer.service.dist activServer.service
+```
+
+Edit the file to change WorkingDirectory and ExecStart, save it.
+
 Copy activServer.service into /etc/systemd/system
 ```
 sudo cp activServer.service /etc/systemd/system
 ```
+
 Activate
 ```
 sudo systemctl enable activServer.service
 ```
+
 Start
 ```
 sudo systemctl start activServer.service
@@ -28,6 +37,11 @@ sudo systemctl start activServer.service
 Check status
 ```
 sudo systemctl status activServer.service
+```
+
+If Check status is ok, remove activServer.service from activServer directory
+```
+sudo rm activServer.service
 ```
 
 Stop
