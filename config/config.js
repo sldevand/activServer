@@ -2,6 +2,7 @@ require('dotenv').config();
 
 var config = {
     portPath: process.env.USB_PORT_PATH,
+    baudRate: process.env.USB_BAUD_RATE,
     rootPath: process.env.ROOT_PATH,
     sep: process.env.SEP,
     ip: process.env.IP,

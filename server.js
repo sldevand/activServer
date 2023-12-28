@@ -110,7 +110,7 @@ server.listen(config.port, config.ip);
 
 var port = new SerialPort({
     path: config.portPath,
-    baudRate: 9600,
+    baudRate: config.baudRate,
     autoOpen: false
 });
 
