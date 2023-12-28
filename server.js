@@ -1,6 +1,9 @@
 const http = require('http');
 const config = require('./config/config');
-const { SerialPort } = require('serialport')
+var { SerialPort } = require('serialport')
+if (config.nodeEnv == 'development') {
+    SerialPort = require('virtual-serialport');
+}
 const CronJob = require('cron').CronJob;
 const Logger = require('./logger/logger-api');
 const df = require('./dateFactory/dateFactory');
@@ -10,7 +13,10 @@ const Timeout = require('await-timeout');
 const SensorsManager = require('./sensors/sensorsManager');
 const ActuatorsManager = require('./actuators/actuatorsManager');
 const ThermostatManager = require('./thermostat/thermostatManager');
-const PortManager = require('./port/portManager');
+let PortManager = require('./port/portManager');
+if (config.nodeEnv == 'development') {
+    PortManager = require('./port/virtualPortManager');
+}
 const DoorThermostat = require('./plugger/door-thermostat');
 
 //SERVER INIT
@@ -100,7 +106,7 @@ io.sockets.on('connection', socket => {
         logger.log(clientIp + ' Disconnected');
     });
 });
-server.listen(config.port);
+server.listen(config.port, config.ip);
 
 var port = new SerialPort({
     path: config.portPath,
@@ -131,12 +137,12 @@ port.on('open', () => {
     datastr = datastr.replace(/[\n\r]+/g, '');
     var dataTab = datastr.split(" ");
     var dataObj = {
-        'radioid': dataTab[0],
-        'valeur1': dataTab[1],
-        'valeur2': dataTab[2],
-        'valeur3': dataTab[3],
-        'valeur4': dataTab[4],
-        'valeur5': dataTab[5]
+        radioid: dataTab[0],
+        valeur1: dataTab[1],
+        valeur2: dataTab[2],
+        valeur3: dataTab[3],
+        valeur4: dataTab[4],
+        valeur5: dataTab[5],
     };
     if (dataObj.radioid.includes("sensor")) {
         sensorsManager.persist(dataTab, dataObj);
@@ -543,7 +549,7 @@ function updateThermostatPlan(id) {
                 plans.forEach(plan => {
                     setTimeout(() => {
                         let putPlanCommandArray = ["nrf24", "node", "2Nodw", "ther", "put", "plan", plan.jour];
-                        plan.timetable = plan.timetable.replace(/-/g,'');
+                        plan.timetable = plan.timetable.replace(/-/g, '');
                         let timetable = JSON.parse(plan.timetable);
                         let putPlanCommand = putPlanCommandArray.concat(timetable).join('/') + '/';
 
@@ -563,7 +569,7 @@ function updateThermostatPlan(id) {
                     portManager.writeAndDrain(savePlanCommand, () => {
                         logger.log("savePlan ok");
                     });
-                }, 10*TIME_BETWEEN_PLANS);
+                }, 10 * TIME_BETWEEN_PLANS);
 
             }, 500);
         });

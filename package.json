@@ -1,22 +1,23 @@
 {
-  "name": "activhome",
-  "version": "1.0.4",
+  "name": "activserver",
+  "version": "1.2.0",
   "description": "",
-  "main": "app.js",
+  "main": "server.js",
   "dependencies": {
     "await-timeout": "^0.6.0",
     "bindings": "^1.2.1",
     "cron": "^1.5.0",
+    "dotenv": "^16.0.3",
     "ini": "^1.3.6",
     "node-fetch": "^2.6.1",
     "serialport": "^10.4.0",
     "socket.io": "^2.4.0",
-    "socket.io-client": "^2.0.4"
+    "socket.io-client": "^2.0.4",
+    "virtual-serialport": "^0.3.3"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Sébastien Lorrain",
   "license": "ISC"
 }

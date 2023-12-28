@@ -7,11 +7,24 @@ class PortManager {
     }
 
     open() {
-        this.port.open();
+        if (this.port.isOpen) {
+            this.afterOpen();
+            return;
+        }
+        this.port.open(function (err) {
+            if (err) {
+                return console.log("Error opening port: ", err.message);
+            }
+            this.afterOpen();
+        });
+    }
+
+    afterOpen() {
+        return;
     }
 
     flush() {
-       this.port.flush();
+        this.port.flush();
     }
 
     writeAndDrain(data, callback) {
@@ -20,11 +33,11 @@ class PortManager {
     }
 
     reset() {
-        let dataStr = 'Resetting serialPort...';
+        let dataStr = "Resetting serialPort...";
         this.logger.log(dataStr);
         this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + dataStr);
-        this.port.close(() => {
-            this.port.open();
+        this.port.close((err) => {
+            this.open();
         });
     }
 }

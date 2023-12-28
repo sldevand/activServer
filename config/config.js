@@ -1,28 +1,14 @@
-var fs = require('fs'),
-    ini = require('ini');
-
-var iniFile;
-
-try {
-    iniFile = ini.parse(fs.readFileSync(__dirname + '/config.ini', 'utf-8'));
-} catch (error) {
-    throw new Error("Error on ini file ----> " + error);
-}
-var isWin = /^win/.test(process.platform);
-var env = "LINUX";
-if (isWin === true) {
-    env = "WINDOWS"
-}
+require('dotenv').config();
 
 var config = {
-    portPath: iniFile[env].portPath,
-    rootPath: iniFile[env].rootPath,
-    logPath: iniFile[env].logPath,
-    sep: iniFile[env].sep,
-    ip: iniFile['NETWORK'].ip,
-    port: iniFile['NETWORK'].port,
-    apiUri:iniFile['API'].address,
-    timerBeforeExecute:iniFile['DOORTHERMOSTAT'].timerBeforeExecute,
+    portPath: process.env.USB_PORT_PATH,
+    rootPath: process.env.ROOT_PATH,
+    sep: process.env.SEP,
+    ip: process.env.IP,
+    port: process.env.PORT,
+    apiUri: process.env.API_BASE_URI,
+    timerBeforeExecute: process.env.TIMER_BEFORE_EXECUTE,
+    nodeEnv: process.env.NODE_ENV
 };
 
 module.exports = config;
