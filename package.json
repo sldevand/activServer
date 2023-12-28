@@ -1,8 +1,8 @@
 {
-  "name": "activhome",
-  "version": "1.0.5",
+  "name": "activserver",
+  "version": "1.2.0",
   "description": "",
-  "main": "app.js",
+  "main": "server.js",
   "dependencies": {
     "await-timeout": "^0.6.0",
     "bindings": "^1.2.1",
