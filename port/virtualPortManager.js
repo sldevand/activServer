@@ -6,6 +6,7 @@ class VirtualPortManager extends PortManager {
     constructor(port, logger, io, df) {
         super(port, logger, io, df);
         this.dispatchAfterOpen = true;
+        this.valueOnOff = false;
     }
 
     afterOpen() {
@@ -27,7 +28,7 @@ class VirtualPortManager extends PortManager {
         return "";
     }
 
-    handleData(data) {       
+    handleData(data) {
         if (data === "nrf24/node/2Nodw/ther/get/rtc/" || data.includes("nrf24/node/2Nodw/ther/put/rtc")) {
             this.port.write(`therclock ${new Date().getDay()} ${df.nowDatetime("/")}`);
         }
@@ -39,16 +40,23 @@ class VirtualPortManager extends PortManager {
     }
 
     sendSensors() {
+        this.valueOnOff = !this.valueOnOff;
         let sensors = [
-            { id: "sensor24thermid1", valeur1: this.randomize(18, 20), valeur2: this.randomize(40, 60) },
+            { id: "chacon-dio", valeur1: 14549858, valeur2: 1, valeur3: Number(this.valueOnOff) },
+            { id: "chacon-dio", valeur1: 14549858, valeur2: 2, valeur3: Number(this.valueOnOff) },
+            { id: "chacon-dio", valeur1: 14549858, valeur2: 3, valeur3: Number(this.valueOnOff) },
             { id: "sensor24ctn10id3", valeur1: this.randomize(18, 20), valeur2: "" },
             { id: "sensor24ctn10id4", valeur1: this.randomize(18, 20), valeur2: "" },
             { id: "sensor43dht22id1", valeur1: this.randomize(18, 20), valeur2: this.randomize(40, 60) },
         ];
         sensors.forEach((sensor) => {
-            this.port.write(`${sensor.id} ${sensor.valeur1} ${sensor.valeur2}`);
+            let suffix = '';
+            if (sensor.hasOwnProperty('valeur3')) {
+                suffix += ' ' + sensor.valeur3
+            }
+            this.port.write(`${sensor.id} ${sensor.valeur1} ${sensor.valeur2}${suffix}`);
         });
-    } 
+    }
 
     randomize(min, max) {
         let randFloat = Math.random() * (max - min) + min;
