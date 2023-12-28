@@ -549,7 +549,7 @@ function updateThermostatPlan(id) {
                 plans.forEach(plan => {
                     setTimeout(() => {
                         let putPlanCommandArray = ["nrf24", "node", "2Nodw", "ther", "put", "plan", plan.jour];
-                        plan.timetable = plan.timetable.replace(/-/g,'');
+                        plan.timetable = plan.timetable.replace(/-/g, '');
                         let timetable = JSON.parse(plan.timetable);
                         let putPlanCommand = putPlanCommandArray.concat(timetable).join('/') + '/';
 
@@ -569,7 +569,7 @@ function updateThermostatPlan(id) {
                     portManager.writeAndDrain(savePlanCommand, () => {
                         logger.log("savePlan ok");
                     });
-                }, 10*TIME_BETWEEN_PLANS);
+                }, 10 * TIME_BETWEEN_PLANS);
 
             }, 500);
         });
