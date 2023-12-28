@@ -11,11 +11,12 @@ class PortManager {
             this.afterOpen();
             return;
         }
+        var that = this;
         this.port.open(function (err) {
             if (err) {
                 return console.log("Error opening port: ", err.message);
             }
-            this.afterOpen();
+            that.afterOpen();
         });
     }
 
