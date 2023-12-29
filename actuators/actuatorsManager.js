@@ -94,6 +94,24 @@ class ActuatorsManager extends Manager {
         });
     }
 
+    updateInterNoSerialPort(interObject) {
+        if (interObject.etat < 0 || interObject.etat > 1) {
+            this.logger.log('In updateInter : value must be 0 or 1');
+        }
+
+        if (typeof (interObject) === 'string') {
+            interObject = JSON.parse(interObject);
+        }
+        
+        this.logger.log("update" + interObject.type + " " + interObject.nom + ' ' + interObject.etat);
+        this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
+        this.io.sockets.emit('inter', interObject);
+        if (interObject.etat === 0) {
+            interObject.etat = "0"
+        }
+        this.post(interObject);
+    }
+
     getInterCommand(interObject) {
         switch (interObject.type) {
             case "relay":

@@ -156,7 +156,7 @@ port.on('open', () => {
                 continue;
             }
             actuator.etat = dataObj.valeur3
-            actuatorsManager.update(actuator);
+            actuatorsManager.updateInterNoSerialPort(actuator);
         }
     }
     if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
