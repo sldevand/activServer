@@ -5,6 +5,7 @@ class ActuatorsManager extends Manager {
         return this.apiFetchReq.get('actionneurs')
             .then(data => {
                 this.data = data;
+                return data;
             }).catch(err => {
                 this.logger.log(err);
             });

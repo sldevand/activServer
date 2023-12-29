@@ -148,16 +148,18 @@ port.on('open', () => {
         sensorsManager.persist(dataTab, dataObj);
     }
     if (dataObj.radioid.includes("chacon-dio") && config.chaconDioSenders.includes(dataObj.valeur1)) {
-        let actuators = actuatorsManager.getData().filter((actuator) => {
-            return actuator.adresse == dataObj.valeur1 && actuator.radioid == dataObj.valeur2
-        });
-        for (let actuator of actuators) {
-            if (actuator.etat == dataObj.valeur3) {
-                continue;
+        actuatorsManager.get().then((data) => {
+            let actuators = data.filter((actuator) => {
+                return actuator.adresse == dataObj.valeur1 && actuator.radioid == dataObj.valeur2
+            });
+            for (let actuator of actuators) {
+                if (actuator.etat == dataObj.valeur3) {
+                    continue;
+                }
+                actuator.etat = dataObj.valeur3
+                actuatorsManager.updateInterNoSerialPort(actuator);
             }
-            actuator.etat = dataObj.valeur3
-            actuatorsManager.updateInterNoSerialPort(actuator);
-        }
+        });
     }
     if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
         persistThermostat(dataObj);
