@@ -147,14 +147,17 @@ port.on('open', () => {
     if (dataObj.radioid.includes("sensor")) {
         sensorsManager.persist(dataTab, dataObj);
     }
-    if (dataObj.radioid.includes("chacon-dio")) {
-        sensorsManager.persistChacon(dataObj)
-            .then(data => {
-                data.timerBeforeExecute = config.timerBeforeExecute;
-                doorThermostat.execute(data, () => {
-                    setThermostatPower(0)
-                });
-            });
+    if (dataObj.radioid.includes("chacon-dio") && config.chaconDioSenders.includes(dataObj.valeur1)) {
+        let actuators = actuatorsManager.getData().filter((actuator) => {
+            return actuator.adresse == dataObj.valeur1 && actuator.radioid == dataObj.valeur2
+        });
+        for (let actuator of actuators) {
+            if (actuator.etat == dataObj.valeur3) {
+                continue;
+            }
+            actuator.etat = dataObj.valeur3
+            actuatorsManager.update(actuator);
+        }
     }
     if (dataObj.radioid.includes("thermostat") || dataObj.radioid.includes("thersel")) {
         persistThermostat(dataObj);

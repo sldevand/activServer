@@ -41,10 +41,11 @@ class VirtualPortManager extends PortManager {
 
     sendSensors() {
         this.valueOnOff = !this.valueOnOff;
+        let sender = config.chaconDioSenders.at(0);
         let sensors = [
-            { id: "chacon-dio", valeur1: 14549858, valeur2: 1, valeur3: Number(this.valueOnOff) },
-            { id: "chacon-dio", valeur1: 14549858, valeur2: 2, valeur3: Number(this.valueOnOff) },
-            { id: "chacon-dio", valeur1: 14549858, valeur2: 3, valeur3: Number(this.valueOnOff) },
+            { id: "chacon-dio", valeur1: sender, valeur2: 1, valeur3: Number(this.valueOnOff) },
+            { id: "chacon-dio", valeur1: sender, valeur2: 2, valeur3: Number(this.valueOnOff) },
+            { id: "chacon-dio", valeur1: sender, valeur2: 3, valeur3: Number(this.valueOnOff) },
             { id: "sensor24ctn10id3", valeur1: this.randomize(18, 20), valeur2: "" },
             { id: "sensor24ctn10id4", valeur1: this.randomize(18, 20), valeur2: "" },
             { id: "sensor43dht22id1", valeur1: this.randomize(18, 20), valeur2: this.randomize(40, 60) },
