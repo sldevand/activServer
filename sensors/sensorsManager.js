@@ -1,11 +1,15 @@
 const Manager = require("./../common/manager");
-class SensorsManager extends Manager{
+class SensorsManager extends Manager {
     get() {
         return this.apiFetchReq.get('mesures/get-sensors')
             .then(data => {
+                if (this.hasError(data)) {
+                    return Promise.reject("SensorsManager::get : " + data.error)
+                }
                 this.data = data;
+                return data;
             }).catch(err => {
-                this.logger.log(err);
+                this.handleError(err);
             });
     }
 
@@ -14,7 +18,13 @@ class SensorsManager extends Manager{
         if (dataTab.length > 2) uri += '-' + dataObj.valeur2;
         return this.apiFetchReq.get(uri)
             .then(data => {
+                if (this.hasError(data)) {
+                    return Promise.reject("SensorsManager::persist : " + data.error)
+                }
                 this.emit(dataObj);
+                return data;
+            }).catch(err => {
+                this.handleError(err);
             });
     }
 
@@ -23,8 +33,13 @@ class SensorsManager extends Manager{
 
         return this.apiFetchReq.get(encodeURI(uri))
             .then(data => {
+                if (this.hasError(data)) {
+                    return Promise.reject("SensorsManager::persistChacon :" + data)
+                }
                 this.emit(dataObj);
                 return data;
+            }).catch(err => {
+                this.handleError(err);
             });
     }
 
