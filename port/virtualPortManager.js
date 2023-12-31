@@ -24,13 +24,17 @@ class VirtualPortManager extends PortManager {
 
     writeAndDrain(data, callback) {
         console.log(`sent to virtualSerialPort : ${data}`);
-        this.handleData(data);
-        return "";
+        return this.handleData(data, callback);;
     }
 
-    handleData(data) {
+    handleData(data, callback) {
         if (data === "nrf24/node/2Nodw/ther/get/rtc/" || data.includes("nrf24/node/2Nodw/ther/put/rtc")) {
             this.port.write(`therclock ${new Date().getDay()} ${df.nowDatetime("/")}`);
+            return "";
+        }
+
+        if (data.includes("cc1101/chacon/" + config.chaconDioSenders.at(0))) {
+            callback();
         }
     }
 
