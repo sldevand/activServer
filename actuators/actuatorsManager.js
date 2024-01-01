@@ -2,16 +2,26 @@ const Manager = require("./../common/manager");
 
 class ActuatorsManager extends Manager {
     get() {
-        return this.apiFetchReq.get('actionneurs')
-            .then(data => {
-                this.data = data;
-            }).catch(err => {
-                this.logger.log(err);
-            });
+        return this.apiFetchReq.get('actionneurs').then((data) => {
+            if (this.hasError(data)) {
+                return Promise.reject("ActuatorsManager::get : " + data.error)
+            }
+            this.data = data;
+            return data;
+        }).catch(err => {
+            this.handleError(err);
+        });
     }
 
     post(data) {
-        return this.apiFetchReq.send('POST', 'actionneurs/update', data);
+        return this.apiFetchReq.send('POST', 'actionneurs/update', data).then((data) => {
+            if (this.hasError(data)) {
+                return Promise.reject("ActuatorsManager::get : " + data.error)
+            }
+            return data;
+        }).catch(err => {
+            this.handleError(err);
+        });
     }
 
     update(actuator, socket) {
@@ -57,20 +67,23 @@ class ActuatorsManager extends Manager {
         }
 
         this.updateDimmer(dimmerObject, socket, true);
-        this.post(dimmerObject).then(res => {
-            if (res && res.error) {
-                return this.logger.log(res.error);
+        this.post(dimmerObject).then(data => {
+            if (this.hasError())
+            if (data && data.error) {
+                return this.logger.log(data.error);
             }
 
             this.logger.log(dimmerObject.nom + ' ' + dimmerObject.etat);
             this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + dimmerObject.nom + ' ' + dimmerObject.etat);
-        })
-            .catch(err => console.log(err));
+        }).catch((err) => { 
+            this.handleError(err);
+        });
     }
 
     updateInter(interObject, socket) {
         if (interObject.etat < 0 || interObject.etat > 1) {
             this.logger.log('In updateInter : value must be 0 or 1');
+            return;
         }
 
         if (typeof (interObject) === 'string') {
@@ -92,6 +105,24 @@ class ActuatorsManager extends Manager {
             }
             this.post(interObject);
         });
+    }
+
+    updateInterNoSerialPort(interObject) {
+        if (interObject.etat < 0 || interObject.etat > 1) {
+            this.logger.log('In updateInter : value must be 0 or 1');
+        }
+
+        if (typeof (interObject) === 'string') {
+            interObject = JSON.parse(interObject);
+        }
+ 
+        this.logger.log("update" + interObject.type + " " + interObject.nom + ' ' + interObject.etat);
+        this.io.sockets.emit("messageConsole", this.df.stringifiedHour() + " " + interObject.nom + ' ' + interObject.etat);
+        this.io.sockets.emit('inter', interObject);
+        if (interObject.etat === 0) {
+            interObject.etat = "0"
+        }
+        this.post(interObject);
     }
 
     getInterCommand(interObject) {

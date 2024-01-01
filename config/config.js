@@ -8,7 +8,8 @@ var config = {
     port: process.env.PORT,
     apiUri: process.env.API_BASE_URI,
     timerBeforeExecute: process.env.TIMER_BEFORE_EXECUTE,
-    nodeEnv: process.env.NODE_ENV
+    nodeEnv: process.env.NODE_ENV,
+    chaconDioSenders: process.env.CHACON_DIO_SENDERS.split(' ')
 };
 
 module.exports = config;
