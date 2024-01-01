@@ -17,7 +17,6 @@ let PortManager = require('./port/portManager');
 if (config.nodeEnv == 'development') {
     PortManager = require('./port/virtualPortManager');
 }
-const DoorThermostat = require('./plugger/door-thermostat');
 
 //SERVER INIT
 var server = http.createServer();
@@ -26,26 +25,15 @@ var apiFetchReq = new APIFetchRequest('http://' + config.ip + '/' + config.apiUr
 var io = require('socket.io').listen(server);
 var logger = new Logger(apiFetchReq, df);
 
-//CRONJOBS
-var logRefreshCronJob = new CronJob('0 */30 * * * *', () => {
-    apiReq.get('thermostat/log/refresh');
-}, null, true, 'Europe/Paris');
-
-var rtcUpdateThermostatCronJob = new CronJob('0 5 0 * * *', () => {
-    updateThermostatRtc();
-}, null, true, 'Europe/Paris');
-
 resetScenariosStatuses();
 
 //GLOBAL VARS
-var capteurs = [];
 var thermostats = [];
 var timers = [];
 const ACTIONS_DELAY = 300;
 const sensorsManager = new SensorsManager(apiFetchReq, logger, io, df);
 const actuatorsManager = new ActuatorsManager(apiFetchReq, logger, io, df);
 const thermostatManager = new ThermostatManager(apiFetchReq, logger, io, df);
-const doorThermostat = new DoorThermostat();
 
 //SOCKETIO LISTENERS
 io.sockets.on('connection', socket => {
