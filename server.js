@@ -22,7 +22,7 @@ if (config.nodeEnv == 'development') {
 var server = http.createServer();
 var apiReq = new APIRequest(http, config.ip, '/' + config.apiUri + '/');
 var apiFetchReq = new APIFetchRequest('http://' + config.ip + '/' + config.apiUri);
-var io = require('socket.io').listen(server);
+var io = require('socket.io')(server);
 var logger = new Logger(apiFetchReq, df);
 
 resetScenariosStatuses();
