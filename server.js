@@ -22,7 +22,15 @@ if (config.nodeEnv == 'development') {
 var server = http.createServer();
 var apiReq = new APIRequest(http, config.ip, '/' + config.apiUri + '/');
 var apiFetchReq = new APIFetchRequest('http://' + config.ip + '/' + config.apiUri);
-var io = require('socket.io')(server);
+var io = require('socket.io')(server, {
+    origins: ["http://domusbox"],
+    handlePreflightRequest: (req, res) => {
+        res.writeHead(200, {
+            "Access-Control-Allow-Origin": "http://domusbox"
+        });
+        res.end();
+    }
+});
 var logger = new Logger(apiFetchReq, df);
 
 resetScenariosStatuses();
