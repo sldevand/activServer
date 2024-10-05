@@ -27,7 +27,8 @@ var io = require('socket.io')(server, {
     handlePreflightRequest: (req, res) => {
         res.writeHead(200, {
             "Access-Control-Allow-Origin": "http://domusbox",
-            "Access-Control-Allow-Private-Network": true
+            "Access-Control-Allow-Private-Network": true,
+            "Access-Control-Request-Private-Network": true
         });
         res.end();
     }
