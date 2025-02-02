@@ -1,4 +1,3 @@
-var fetch = require('node-fetch');
 module.exports = function ApiFetchRequest(p_basePath) {
     let basePath = p_basePath;
 

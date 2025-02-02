@@ -20,8 +20,8 @@ if (config.nodeEnv == 'development') {
 
 //SERVER INIT
 var server = http.createServer();
-var apiReq = new APIRequest(http, config.ip, '/' + config.apiUri + '/');
-var apiFetchReq = new APIFetchRequest('http://' + config.ip + '/' + config.apiUri);
+var apiReq = new APIRequest(http, config.ip, `/${config.apiUri}/`);
+var apiFetchReq = new APIFetchRequest(`${config.protocol}://${config.ip}/${config.apiUri}`);
 var io = require('socket.io')(server);
 var logger = new Logger(apiFetchReq, df);
 
