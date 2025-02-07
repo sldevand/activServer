@@ -1,10 +1,11 @@
-const http = require('http');
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+const https = require('https');
+var fs = require('fs');
 const config = require('./config/config');
 var { SerialPort } = require('serialport')
 if (config.nodeEnv == 'development') {
     SerialPort = require('virtual-serialport');
 }
-const CronJob = require('cron').CronJob;
 const Logger = require('./logger/logger-api');
 const df = require('./dateFactory/dateFactory');
 const APIRequest = require('./httpRequest/apiRequest');
@@ -18,10 +19,17 @@ if (config.nodeEnv == 'development') {
     PortManager = require('./port/virtualPortManager');
 }
 
+var options = {
+    key: fs.readFileSync('/etc/ssl/private/nginx-selfsigned.key'),
+    cert: fs.readFileSync('/etc/ssl/certs/nginx-selfsigned.crt'),
+    requestCert: false,
+    rejectUnauthorized: false
+}
+
 //SERVER INIT
-var server = http.createServer();
-var apiReq = new APIRequest(http, config.ip, `/${config.apiUri}/`);
-var apiFetchReq = new APIFetchRequest(`${config.protocol}://${config.ip}/${config.apiUri}`);
+var server = https.createServer(options);
+var apiReq = new APIRequest(https, config.activapiDomain, `/${config.apiUri}/`);
+var apiFetchReq = new APIFetchRequest(`${config.protocol}://${config.activapiDomain}/${config.apiUri}`);
 var io = require('socket.io')(server);
 var logger = new Logger(apiFetchReq, df);
 
@@ -94,7 +102,9 @@ io.sockets.on('connection', socket => {
         logger.log(clientIp + ' Disconnected');
     });
 });
-server.listen(config.port, config.ip);
+server.listen(config.port, config.ip, (data) => {
+    console.log(`server listening at https://${config.ip}:${config.port}`);
+});
 
 var port = new SerialPort({
     path: config.portPath,
